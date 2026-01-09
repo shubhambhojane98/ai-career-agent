@@ -1,33 +1,42 @@
-from langchain.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
 
 ATS_PROMPT = ChatPromptTemplate.from_messages([
     (
         "system",
-        "You are an advanced ATS (Applicant Tracking System) evaluator."
+        "You are an advanced ATS (Applicant Tracking System) evaluator used by recruiters."
     ),
     (
         "human",
         """
-Evaluate the candidate resume against the job description.
+Evaluate the candidate resume against the job description using ATS-style analysis.
 
 ### Inputs:
 - Resume text
 - Job Description text
-- Semantic similarity score (0 to 1)
+- Semantic similarity score (0.0 to 1.0)
 
 ### Tasks:
-1. Analyze how well the resume matches the job description.
-2. Identify missing or weak skills.
-3. Identify strong matching skills.
-4. Provide actionable resume improvement suggestions with priorities.
-5. Estimate an ATS score (0–100).
+1. Evaluate overall resume–job fit.
+2. Analyze skill alignment and gaps.
+3. Identify missing keywords required by ATS systems.
+4. Assess experience relevance and seniority match.
+5. Provide prioritized, actionable improvement suggestions.
+6. Generate recruiter-style recommendations.
+7. Calculate an ATS score from 0 to 100.
 
 ### Output format (STRICT JSON — no markdown, no extra text):
 {{
-  "semantic_similarity": "{similarity}",
   "ats_score": number,
-  "matching_skills": [string],
+  "overall_fit": string,
+
+  "semantic_similarity": number,
+
+  "matched_skills": [string],
   "missing_skills": [string],
+  "keyword_gaps": [string],
+
+  "experience_match": string,
+
   "improvements": [
     {{
       "title": string,
@@ -35,20 +44,26 @@ Evaluate the candidate resume against the job description.
       "priority": "high" | "medium" | "low"
     }}
   ],
-  "summary": string
+
+  "summary": string,
+  "recommendations": [string]
 }}
 
 ### Rules:
+- ATS score must reflect skills, keywords, and experience match
+- overall_fit must be one short sentence (e.g., "Strong match", "Moderate match", "Weak match")
+- experience_match must describe alignment (e.g., "Meets required experience level")
 - Provide 3–7 improvement items
-- Titles must be short and clear
-- Descriptions must be practical and actionable
-- Priorities must reflect ATS impact
+- Recommendations should be concise, recruiter-oriented actions
 
 ### Resume:
 {resume}
 
 ### Job Description:
 {jd}
+
+### Semantic Similarity Score:
+{similarity}
 """
     )
 ])
