@@ -26,17 +26,13 @@ Evaluate the candidate resume against the job description using ATS-style analys
 
 ### Output format (STRICT JSON — no markdown, no extra text):
 {{
-  "ats_score": number,
+  "ats_score": integer,
   "overall_fit": string,
-
   "semantic_similarity": number,
-
   "matched_skills": [string],
   "missing_skills": [string],
   "keyword_gaps": [string],
-
   "experience_match": string,
-
   "improvements": [
     {{
       "title": string,
@@ -44,7 +40,6 @@ Evaluate the candidate resume against the job description using ATS-style analys
       "priority": "high" | "medium" | "low"
     }}
   ],
-
   "summary": string,
   "recommendations": [string]
 }}
@@ -55,6 +50,41 @@ Evaluate the candidate resume against the job description using ATS-style analys
 - experience_match must describe alignment (e.g., "Meets required experience level")
 - Provide 3–7 improvement items
 - Recommendations should be concise, recruiter-oriented actions
+
+### Example Output:
+
+{{
+  "ats_score": 82,
+  "overall_fit": "Moderate match",
+  "semantic_similarity": 0.74,
+  "matched_skills": ["Python", "Django", "REST APIs", "SQL"],
+  "missing_skills": ["AWS", "Docker", "CI/CD pipelines"],
+  "keyword_gaps": ["Cloud infrastructure", "Containerization", "DevOps"],
+  "experience_match": "Meets required experience level but lacks senior-level leadership examples",
+  "improvements": [
+    {{
+      "title": "Add Cloud Experience",
+      "description": "Include projects or work experience involving AWS or cloud platforms",
+      "priority": "high"
+    }},
+    {{
+      "title": "Include DevOps Skills",
+      "description": "List Docker, CI/CD, and related tools in technical skills section",
+      "priority": "high"
+    }},
+    {{
+      "title": "Highlight Leadership Experience",
+      "description": "Showcase any team lead or mentoring experience to strengthen seniority alignment",
+      "priority": "medium"
+    }}
+  ],
+  "summary": "The resume demonstrates strong backend development skills but lacks cloud and DevOps expertise. Soft skills and leadership experience are not highlighted.",
+  "recommendations": [
+    "Add AWS and cloud projects",
+    "Include Docker and CI/CD experience",
+    "Emphasize leadership or mentoring roles"
+  ]
+}}
 
 ### Resume:
 {resume}

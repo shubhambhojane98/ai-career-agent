@@ -2,7 +2,7 @@ from langchain_openai import ChatOpenAI
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.output_parsers import JsonOutputParser
 from app.prompts.ats_prompt import ATS_PROMPT
-from app.services.parser_service import load_pdf
+from app.services.parser_service import load_pdf_docs
 from app.services.pinecone_service import vectorstore
 
 
@@ -23,7 +23,10 @@ chain = ATS_PROMPT | llm | parser
 
 async def run_ats_pipeline(resume_file, jd_text: str):
     #  Load resume PDF (must return List[Document])
-    docs = load_pdf(resume_file)
+    docs = load_pdf_docs(resume_file)
+
+    print("PAGES:", len(docs))
+    print("SAMPLE TEXT:", docs[0].page_content[:300]) 
 
     #  Chunk resume
     splitter = RecursiveCharacterTextSplitter(
@@ -32,11 +35,17 @@ async def run_ats_pipeline(resume_file, jd_text: str):
     )
     resume_chunks = splitter.split_documents(docs)
 
+    print("CHUNKS:", len(resume_chunks))
+
+
     # Store embeddings
     vectorstore.add_documents(
         documents=resume_chunks,
         namespace="resumes"
     )
+
+    print("STORING CHUNKS IN PINECONE")
+
 
     # Semantic similarity (JD → resume)
     results = vectorstore.similarity_search_with_score(
@@ -45,14 +54,20 @@ async def run_ats_pipeline(resume_file, jd_text: str):
         namespace="resumes"
     )
 
+    print("SIMILARITY RESULTS:", results)
+
     if not results:
         similarity = 0.0
     else:
         scores = [score for _, score in results]
         similarity = round(sum(scores) / len(scores), 2)
 
+    print("SIMILARITY SCORE:", similarity)
+    
     #  LLM analysis
     resume_text = "\n".join(doc.page_content for doc in docs)
+
+    print("RESUME LENGTH:", len(resume_text))
 
     analysis = chain.invoke({
         "resume": resume_text,
@@ -60,7 +75,6 @@ async def run_ats_pipeline(resume_file, jd_text: str):
         "similarity": similarity
     })
 
-    return {
-        "ats_score": similarity,
-        "analysis": analysis
-    }
+    print("LLM OUTPUT:", analysis)
+
+    return analysis
