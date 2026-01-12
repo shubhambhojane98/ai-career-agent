@@ -17,6 +17,8 @@ import { cn } from "@/lib/utils";
 
 type LoadingStep = "parsing" | "matching" | "generating";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
+
 export default function UploadPage() {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [jobDescription, setJobDescription] = useState("");
@@ -62,22 +64,45 @@ export default function UploadPage() {
   );
 
   const handleSubmit = async () => {
+    if (!resumeFile || !jobDescription.trim()) return;
+
+    console.log("------START-_---");
+
     setIsLoading(true);
     setError(null);
 
-    // Simulate loading steps
-    const steps: LoadingStep[] = ["parsing", "matching", "generating"];
+    try {
+      setCurrentStep("parsing");
 
-    for (const step of steps) {
-      setCurrentStep(step);
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const formData = new FormData();
+      formData.append("resume", resumeFile);
+      formData.append("job_description", jobDescription);
+
+      setCurrentStep("matching");
+
+      const response = await fetch(`${API_BASE_URL}/api/v1/resume/ats-check`, {
+        method: "POST",
+        body: formData,
+      });
+
+      console.log(response);
+
+      setCurrentStep("generating");
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Failed to analyze resume");
+      }
+
+      const result = await response.json();
+      console.log("ATS Result:", result);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Something went wrong");
+    } finally {
+      setIsLoading(false);
+      setCurrentStep(null);
     }
-
-    // Placeholder for actual submission logic
-    console.log("Analyzing profile:", { resumeFile, jobDescription });
-
-    setIsLoading(false);
-    setCurrentStep(null);
   };
 
   const isSubmitDisabled = !resumeFile || !jobDescription.trim() || isLoading;
