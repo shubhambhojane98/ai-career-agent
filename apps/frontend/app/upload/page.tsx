@@ -95,6 +95,7 @@ export default function UploadPage() {
       }
 
       const result = await response.json();
+      localStorage.setItem("ats_result", JSON.stringify(result));
       console.log("ATS Result:", result);
     } catch (err: any) {
       console.error(err);
