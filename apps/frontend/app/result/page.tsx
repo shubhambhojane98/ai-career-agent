@@ -1,4 +1,6 @@
 "use client";
+
+import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -23,54 +25,49 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-// Mock data for the resume analysis
-const analysisData = {
-  atsScore: 72,
-  missingKeywords: [
-    "Machine Learning",
-    "Python",
-    "Data Analysis",
-    "TensorFlow",
-    "SQL",
-    "Cloud Computing",
-    "API Development",
-    "Agile Methodology",
-  ],
-  improvements: [
-    {
-      title: "Add Quantifiable Achievements",
-      description:
-        "Include specific metrics and numbers to demonstrate impact (e.g., 'Increased efficiency by 40%')",
-      priority: "high",
-    },
-    {
-      title: "Include Technical Skills Section",
-      description:
-        "Add a dedicated section highlighting your technical proficiencies and tools",
-      priority: "high",
-    },
-    {
-      title: "Optimize Job Titles",
-      description:
-        "Align your job titles with industry-standard terminology for better ATS matching",
-      priority: "medium",
-    },
-    {
-      title: "Add Professional Summary",
-      description:
-        "Include a compelling 2-3 sentence summary at the top of your resume",
-      priority: "medium",
-    },
-    {
-      title: "Expand Education Details",
-      description:
-        "Include relevant coursework, honors, or certifications under your education section",
-      priority: "low",
-    },
-  ],
+/* ================= TYPES ================= */
+
+type Improvement = {
+  title: string;
+  description: string;
+  priority: "high" | "medium" | "low";
+};
+
+type ATSResult = {
+  ats_score: number;
+  overall_fit: string;
+  semantic_similarity: number;
+  matched_skills: string[];
+  missing_skills: string[];
+  keyword_gaps: string[];
+  experience_match: string;
+  improvements: Improvement[];
+  summary: string;
+  recommendations: string[];
 };
 
 export default function ResumeAnalysis() {
+  const [analysisData, setAnalysisData] = useState<ATSResult | null>(null);
+
+  useEffect(() => {
+    const storedResult = localStorage.getItem("ats_result");
+    if (!storedResult) return;
+
+    try {
+      setAnalysisData(JSON.parse(storedResult));
+    } catch (err) {
+      console.error("Invalid ATS result data", err);
+    }
+  }, []);
+
+  if (!analysisData) {
+    return (
+      <div className="container mx-auto py-12 text-center">
+        <p className="text-muted-foreground">Loading analysis result...</p>
+      </div>
+    );
+  }
+
   const getScoreColor = (score: number) => {
     if (score >= 80) return "text-emerald-600 dark:text-emerald-400";
     if (score >= 60) return "text-amber-600 dark:text-amber-400";
@@ -97,98 +94,73 @@ export default function ResumeAnalysis() {
     <div className="container mx-auto py-4 sm:py-8 px-4 sm:px-6">
       {/* Header */}
       <div className="mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-2 text-balance">
-          Resume Analysis Results
-        </h1>
-        <p className="text-muted-foreground text-sm sm:text-base lg:text-lg">
-          AI-powered insights to optimize your resume for applicant tracking
-          systems
+        <h1 className="text-3xl font-bold mb-2">Resume Analysis Results</h1>
+        <p className="text-muted-foreground">
+          AI-powered insights to optimize your resume for ATS systems
         </p>
       </div>
 
       {/* ATS Score Card */}
       <Card className="mb-6 border-2">
         <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex-1">
-              <CardTitle className="text-xl sm:text-2xl">
-                ATS Compatibility Score
-              </CardTitle>
-              <CardDescription className="mt-1 text-sm">
-                How well your resume matches applicant tracking system
-                requirements
-              </CardDescription>
-            </div>
-            <div className="text-center sm:text-right">
+          <div className="flex justify-between items-center">
+            <CardTitle>ATS Compatibility Score</CardTitle>
+            <div className="text-right">
               <div
-                className={`text-4xl sm:text-5xl font-bold ${getScoreColor(
-                  analysisData.atsScore
+                className={`text-5xl font-bold ${getScoreColor(
+                  analysisData.ats_score
                 )}`}
               >
-                {analysisData.atsScore}%
+                {analysisData.ats_score}%
               </div>
-              <p className="text-sm text-muted-foreground mt-1">
-                {getScoreLabel(analysisData.atsScore)}
+              <p className="text-muted-foreground">
+                {getScoreLabel(analysisData.ats_score)}
               </p>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <Progress value={analysisData.atsScore} className="h-3" />
-          <div className="flex items-center gap-2 mt-4 text-xs sm:text-sm text-muted-foreground">
-            <TrendingUp className="h-4 w-4 flex-shrink-0" />
-            <span>
-              Your score is above average. Keep improving to reach 80%+
-            </span>
+          <Progress value={analysisData.ats_score} />
+          <div className="flex items-center gap-2 mt-4 text-sm text-muted-foreground">
+            <TrendingUp className="h-4 w-4" />
+            Improve skills to reach 80%+
           </div>
         </CardContent>
       </Card>
 
-      {/* Missing Keywords Card */}
-      <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+      {/* ===== GRID SECTION (FIXED ALIGNMENT) ===== */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Missing Skills */}
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-              <CardTitle className="text-lg sm:text-xl">
-                Missing Keywords
-              </CardTitle>
+              <AlertCircle className="h-5 w-5 text-amber-500" />
+              <CardTitle>Missing Keywords</CardTitle>
             </div>
-            <CardDescription className="text-sm">
-              Important terms found in similar job postings but missing from
-              your resume
+            <CardDescription>
+              Skills found in job descriptions but missing in your resume
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {analysisData.missingKeywords.map((keyword, index) => (
-                <Badge
-                  key={index}
-                  variant="secondary"
-                  className="px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm"
-                >
-                  {keyword}
+          <CardContent className="flex flex-wrap gap-2">
+            {[...analysisData.missing_skills, ...analysisData.keyword_gaps].map(
+              (skill, index) => (
+                <Badge key={index} variant="secondary">
+                  {skill}
                 </Badge>
-              ))}
-            </div>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-4">
-              Consider incorporating these keywords naturally throughout your
-              resume
-            </p>
+              )
+            )}
           </CardContent>
         </Card>
 
-        {/* Download Actions Card */}
+        {/* Download Actions Card (Aligned) */}
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary flex-shrink-0" />
-              <CardTitle className="text-lg sm:text-xl">
-                Export Options
-              </CardTitle>
+              <FileText className="h-5 w-5 text-primary" />
+              <CardTitle>Export Options</CardTitle>
             </div>
-            <CardDescription className="text-sm">
-              Download your optimized resume and detailed analysis report
+            <CardDescription>
+              Download your optimized resume and ATS report
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -196,22 +168,14 @@ export default function ResumeAnalysis() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div>
-                    <Button
-                      disabled
-                      className="w-full justify-start text-sm sm:text-base"
-                      size="lg"
-                    >
-                      <Download className="mr-2 h-4 w-4 flex-shrink-0" />
-                      <span className="truncate">
-                        Download Optimized Resume
-                      </span>
+                    <Button disabled className="w-full justify-start">
+                      <Download className="mr-2 h-4 w-4" />
+                      Download Optimized Resume
                     </Button>
                   </div>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p className="text-xs sm:text-sm">
-                    Upgrade to Premium to download your optimized resume
-                  </p>
+                  Upgrade to Premium to unlock downloads
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -223,74 +187,44 @@ export default function ResumeAnalysis() {
                     <Button
                       disabled
                       variant="outline"
-                      className="w-full justify-start bg-transparent text-sm sm:text-base"
-                      size="lg"
+                      className="w-full justify-start"
                     >
-                      <Download className="mr-2 h-4 w-4 flex-shrink-0" />
-                      <span className="truncate">
-                        Download Full Report (PDF)
-                      </span>
+                      <Download className="mr-2 h-4 w-4" />
+                      Download Full Report (PDF)
                     </Button>
                   </div>
                 </TooltipTrigger>
-                <TooltipContent>
-                  <p className="text-xs sm:text-sm">
-                    Upgrade to Premium to download the detailed analysis report
-                  </p>
-                </TooltipContent>
+                <TooltipContent>Premium feature</TooltipContent>
               </Tooltip>
             </TooltipProvider>
-
-            <div className="pt-2 px-1">
-              <p className="text-xs text-muted-foreground">
-                Unlock download features with a Premium subscription
-              </p>
-            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Suggested Improvements Card */}
-      <Card className="mt-4 sm:mt-6">
+      <Card className="mt-6">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
-            <CardTitle className="text-lg sm:text-xl">
-              Suggested Improvements
-            </CardTitle>
+            <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+            <CardTitle>Suggested Improvements</CardTitle>
           </div>
-          <CardDescription className="text-sm">
-            Actionable recommendations to enhance your resume's effectiveness
-          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-3 sm:space-y-4">
-            {analysisData.improvements.map((improvement, index) => (
-              <div
-                key={index}
-                className="flex gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
-              >
-                <div className="flex-1 space-y-1.5 sm:space-y-2 min-w-0">
-                  <div className="flex items-start sm:items-center gap-2 flex-wrap">
-                    <h3 className="font-semibold text-card-foreground text-sm sm:text-base">
-                      {improvement.title}
-                    </h3>
-                    <Badge
-                      variant="secondary"
-                      className={`${getPriorityBadge(
-                        improvement.priority
-                      )} text-xs flex-shrink-0`}
-                    >
-                      {improvement.priority.toUpperCase()}
-                    </Badge>
-                  </div>
-                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                    {improvement.description}
-                  </p>
-                </div>
+        <CardContent className="space-y-4">
+          {analysisData.improvements.map((item, index) => (
+            <div
+              key={index}
+              className="p-4 border rounded-lg hover:bg-accent/40 transition"
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="font-semibold">{item.title}</h3>
+                <Badge className={`${getPriorityBadge(item.priority)} text-xs`}>
+                  {item.priority.toUpperCase()}
+                </Badge>
               </div>
-            ))}
-          </div>
+              <p className="text-sm text-muted-foreground">
+                {item.description}
+              </p>
+            </div>
+          ))}
         </CardContent>
       </Card>
     </div>

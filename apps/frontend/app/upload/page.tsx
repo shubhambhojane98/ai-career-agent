@@ -1,6 +1,7 @@
 "use client";
 
 import type React from "react";
+import { useRouter } from "next/navigation";
 
 import { useState, useCallback } from "react";
 import {
@@ -26,6 +27,7 @@ export default function UploadPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState<LoadingStep | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -97,6 +99,7 @@ export default function UploadPage() {
       const result = await response.json();
       localStorage.setItem("ats_result", JSON.stringify(result));
       console.log("ATS Result:", result);
+      router.push("/result");
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Something went wrong");
