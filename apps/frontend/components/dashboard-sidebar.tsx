@@ -33,7 +33,7 @@ const navigationItems = [
   },
   {
     name: "Resume Score",
-    href: "/score",
+    href: "/result",
     icon: FileCheck,
   },
   {

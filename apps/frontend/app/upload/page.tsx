@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Upload, FileText, AlertCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useUser } from "@clerk/nextjs";
 
 type LoadingStep = "parsing" | "matching" | "generating";
 
@@ -28,6 +29,8 @@ export default function UploadPage() {
   const [currentStep, setCurrentStep] = useState<LoadingStep | null>(null);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const { user } = useUser();
+  console.log(user?.id);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -85,6 +88,9 @@ export default function UploadPage() {
       const response = await fetch(`${API_BASE_URL}/api/v1/resume/ats-check`, {
         method: "POST",
         body: formData,
+        headers: {
+          "user-id": user?.id ?? "",
+        },
       });
 
       console.log(response);
@@ -97,7 +103,9 @@ export default function UploadPage() {
       }
 
       const result = await response.json();
-      localStorage.setItem("ats_result", JSON.stringify(result));
+      if (!user?.id) {
+        localStorage.setItem("ats_result", JSON.stringify(result));
+      }
       console.log("ATS Result:", result);
       router.push("/result");
     } catch (err: any) {

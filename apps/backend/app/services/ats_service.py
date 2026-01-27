@@ -1,11 +1,15 @@
 import uuid
 
+from fastapi import UploadFile
+from io import BytesIO
 from langchain_openai import ChatOpenAI
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.output_parsers import JsonOutputParser
 from app.prompts.ats_prompt import ATS_PROMPT
 from app.services.parser_service import load_pdf_docs
 from app.services.pinecone_service import vectorstore
+from app.services.analysis_service import save_ats_analysis , delete_existing_resume_and_analysis
+from app.services.storage_service import upload_resume_to_supabase
 
 
 # LLM setup
@@ -32,16 +36,36 @@ async def run_ats_pipeline(
     *,
     user_id: str | None = None
 ):
+    print("USER ID", user_id)
+    namespace_created = False
+        # 🔥 READ FILE ONCE
+    pdf_bytes = await resume_file.read()
+
+        # 🔥 Reset file pointer for PDF parsing
+    resume_file.file = BytesIO(pdf_bytes)
 
     if user_id:
         namespace = f"user_{user_id}"
         is_guest = False
 
-        # Ensure only ONE resume per user
-        vectorstore._index.delete(
-            delete_all=True,
-            namespace=namespace
-        )
+        # ✅ DELETE OLD DATA (NEW)
+        delete_existing_resume_and_analysis(user_id)
+
+        try:
+            # Ensure only ONE resume per user
+            vectorstore._index.delete(
+                delete_all=True,
+                namespace=namespace
+            )
+        except Exception:
+            pass
+
+                # ✅ Upload resume
+        resume_path = await upload_resume_to_supabase(
+                file_bytes=pdf_bytes,
+                filename=resume_file.filename,
+                user_id=user_id  
+         )
     else:
         namespace = generate_guest_namespace()
         is_guest = True
@@ -69,6 +93,8 @@ async def run_ats_pipeline(
             documents=resume_chunks,
             namespace= namespace
         )
+         
+        namespace_created = True
 
         print("STORING CHUNKS IN PINECONE")
 
@@ -102,11 +128,22 @@ async def run_ats_pipeline(
         })
         print("LLM OUTPUT:", analysis)
 
+        if user_id:
+            save_ats_analysis(
+                user_id=user_id,
+                similarity=similarity,
+                analysis=analysis,
+                resume_path=resume_path
+            )
+
         return analysis
     
     finally:
-        if is_guest:
-            vectorstore._index.delete(
-                delete_all=True,
-                namespace=namespace
-            )
+        if is_guest and namespace_created:
+            try:
+                vectorstore._index.delete(
+                    delete_all=True,
+                    namespace=namespace
+                )
+            except Exception:
+                pass
