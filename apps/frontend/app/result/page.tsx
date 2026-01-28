@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase/client";
 import {
   Card,
   CardContent,
@@ -24,6 +25,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useUser } from "@clerk/nextjs";
 
 /* ================= TYPES ================= */
 
@@ -47,23 +49,74 @@ type ATSResult = {
 };
 
 export default function ResumeAnalysis() {
+  const { user, isLoaded } = useUser();
   const [analysisData, setAnalysisData] = useState<ATSResult | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!isLoaded) return;
+
+    // 👉 Logged-in user → Supabase
+    if (user?.id) {
+      fetchFromSupabase(user.id);
+    } else {
+      // 👉 Guest fallback
+      fetchFromLocalStorage();
+    }
+  }, [isLoaded, user]);
+
+  const fetchFromSupabase = async (userId: string) => {
+    setLoading(true);
+
+    const { data, error } = await supabase
+      .from("ats_analyses")
+      .select("analysis")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error) {
+      console.error("Supabase error:", error);
+      setLoading(false);
+      return;
+    }
+
+    console.log(data.analysis);
+    setAnalysisData(data.analysis);
+    setLoading(false);
+  };
+
+  const fetchFromLocalStorage = () => {
     const storedResult = localStorage.getItem("ats_result");
-    if (!storedResult) return;
+    if (!storedResult) {
+      setLoading(false);
+      return;
+    }
 
     try {
       setAnalysisData(JSON.parse(storedResult));
     } catch (err) {
       console.error("Invalid ATS result data", err);
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  };
+
+  if (loading) {
+    return (
+      <div className="container mx-auto py-12 text-center">
+        <p className="text-muted-foreground">Fetching your ATS analysis...</p>
+      </div>
+    );
+  }
 
   if (!analysisData) {
     return (
       <div className="container mx-auto py-12 text-center">
-        <p className="text-muted-foreground">Loading analysis result...</p>
+        <p className="text-muted-foreground">
+          No analysis found. Upload your resume to start.
+        </p>
       </div>
     );
   }
