@@ -5,12 +5,14 @@ def save_ats_analysis(
     user_id: str,
     similarity: float,
     analysis: dict,
+    job_description:str,
     resume_path: str | None = None
 ):
     return supabase.table("ats_analyses").insert({
         "user_id": user_id,
         "similarity_score": similarity,
         "analysis": analysis,
+        "job_description": job_description,
         "resume_path": resume_path
     }).execute()
 

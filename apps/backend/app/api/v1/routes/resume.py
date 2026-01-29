@@ -15,5 +15,5 @@ async def ats_check(
 
 ):
     return await run_ats_pipeline(resume_file=resume,
-    jd_text=job_description,
+    job_description=job_description,
     user_id=user_id)

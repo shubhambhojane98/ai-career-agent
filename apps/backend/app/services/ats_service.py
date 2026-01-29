@@ -32,7 +32,7 @@ def generate_guest_namespace() -> str:
 
 async def run_ats_pipeline(
     resume_file,
-    jd_text: str,
+    job_description: str,
     *,
     user_id: str | None = None
 ):
@@ -101,7 +101,7 @@ async def run_ats_pipeline(
 
         # Semantic similarity (JD → resume)
         results = vectorstore.similarity_search_with_score(
-            jd_text,
+            job_description,
             k=5,
             namespace=namespace
         )
@@ -123,7 +123,7 @@ async def run_ats_pipeline(
 
         analysis = chain.invoke({
             "resume": resume_text,
-            "jd": jd_text,
+            "jd": job_description,
             "similarity": similarity
         })
         print("LLM OUTPUT:", analysis)
@@ -133,7 +133,8 @@ async def run_ats_pipeline(
                 user_id=user_id,
                 similarity=similarity,
                 analysis=analysis,
-                resume_path=resume_path
+                resume_path=resume_path,
+                job_description=job_description
             )
 
         return analysis
