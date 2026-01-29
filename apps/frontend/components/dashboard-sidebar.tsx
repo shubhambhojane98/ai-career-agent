@@ -18,7 +18,7 @@ import { useState } from "react";
 const navigationItems = [
   {
     name: "Dashboard",
-    href: "/",
+    href: "/dashboard",
     icon: LayoutDashboard,
   },
   {
@@ -28,7 +28,7 @@ const navigationItems = [
   },
   {
     name: "Mock Interview",
-    href: "/interview",
+    href: "/dashboard/interview",
     icon: Video,
   },
   {
@@ -83,7 +83,11 @@ export function DashboardSidebar() {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-45 w-64 bg-sidebar border-r border-sidebar-border flex flex-col transition-transform duration-200 lg:translate-x-0",
+          "fixed left-0 z-40 w-64 bg-sidebar border-r border-sidebar-border flex flex-col transition-transform duration-200",
+          // Mobile: below navbar
+          "top-14 h-[calc(100vh-3.5rem)]",
+          // Desktop: full height
+          "lg:top-0 lg:h-screen lg:translate-x-0",
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
