@@ -20,6 +20,8 @@ type Message = {
   text: string;
 };
 
+const LISTENING_DELAY_MS = 1200; // 🧠 gives user breathing room
+
 export default function AIInterviewRoom({
   atsAnalysisId,
 }: {
@@ -36,64 +38,110 @@ export default function AIInterviewRoom({
   const audioCtxRef = useRef<AudioContext | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
+  const isFinalRef = useRef(false);
+  const isEndingRef = useRef(false);
+  const isPlayingAudioRef = useRef(false);
+  const listenTimeoutRef = useRef<number | null>(null);
+
   const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 
-  /* -------------------- AUDIO PLAYBACK -------------------- */
+  /* ---------------- AUDIO ---------------- */
   const playAudioBuffer = async (arrayBuffer: ArrayBuffer) => {
-    if (!audioCtxRef.current) audioCtxRef.current = new AudioContext();
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new AudioContext();
+    }
 
-    const audioBuffer = await audioCtxRef.current.decodeAudioData(arrayBuffer);
-    const source = audioCtxRef.current.createBufferSource();
-    source.buffer = audioBuffer;
-    source.connect(audioCtxRef.current.destination);
-    source.start();
+    const buffer = await audioCtxRef.current.decodeAudioData(arrayBuffer);
+
+    isPlayingAudioRef.current = true;
+
+    return new Promise<void>((resolve) => {
+      const source = audioCtxRef.current!.createBufferSource();
+      source.buffer = buffer;
+      source.connect(audioCtxRef.current!.destination);
+
+      source.onended = () => {
+        isPlayingAudioRef.current = false;
+        resolve();
+      };
+
+      source.start();
+    });
   };
 
-  /* -------------------- SPEECH RECOGNITION -------------------- */
+  /* ---------------- SPEECH RECOGNITION ---------------- */
   useEffect(() => {
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    if (!SpeechRecognition) {
-      console.error("SpeechRecognition not supported in this browser");
-      return;
-    }
+    if (!SpeechRecognition) return;
 
     const recognition = new SpeechRecognition();
     recognition.lang = "en-US";
-    recognition.interimResults = true; // allow partial results
-    recognition.continuous = false; // one answer per question
+    recognition.interimResults = false;
+    recognition.continuous = false;
 
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
+    recognition.onresult = (event) => {
+      if (isEndingRef.current) return;
+
       const result = event.results[event.resultIndex];
-      if (result.isFinal) {
-        const transcript = result[0].transcript.trim();
-        if (transcript) sendUserAnswer(transcript);
-      }
+      if (!result.isFinal) return;
+
+      const transcript = result[0].transcript.trim();
+      if (!transcript) return;
+
+      sendUserAnswer(transcript);
     };
 
-    recognition.onerror = (e) => console.error("SpeechRecognition error:", e);
+    recognition.onerror = () => {};
+
+    recognition.onend = () => {
+      // ❌ DO NOTHING
+      // We manually control restart timing
+    };
 
     recognitionRef.current = recognition;
 
-    return () => recognition.stop();
+    return () => {
+      try {
+        recognition.stop();
+      } catch {}
+      recognitionRef.current = null;
+    };
   }, []);
 
-  const startListening = () => {
-    if (!recognitionRef.current) return;
-    try {
-      recognitionRef.current.start();
-    } catch {
-      // Chrome throws if start() called twice
+  const startListeningWithDelay = () => {
+    if (listenTimeoutRef.current) {
+      clearTimeout(listenTimeoutRef.current);
     }
+
+    listenTimeoutRef.current = window.setTimeout(() => {
+      if (
+        isEndingRef.current ||
+        isPlayingAudioRef.current ||
+        !recognitionRef.current
+      )
+        return;
+
+      setState("LISTENING");
+      try {
+        recognitionRef.current.start();
+      } catch {}
+    }, LISTENING_DELAY_MS);
   };
 
   const stopListening = () => {
-    recognitionRef.current?.stop();
+    if (listenTimeoutRef.current) {
+      clearTimeout(listenTimeoutRef.current);
+      listenTimeoutRef.current = null;
+    }
+    try {
+      recognitionRef.current?.stop();
+    } catch {}
   };
 
-  /* -------------------- SESSION + WEBSOCKET -------------------- */
+  /* ---------------- SESSION ---------------- */
   const createSession = async () => {
     const res = await fetch(`${API_BASE_URL}/api/v1/interview/session`, {
       method: "POST",
@@ -109,6 +157,13 @@ export default function AIInterviewRoom({
   };
 
   const startInterview = async () => {
+    isEndingRef.current = false;
+    isFinalRef.current = false;
+    setMessages([]);
+    setFeedback(null);
+    setCurrentText("");
+    setState("PROCESSING");
+
     const sessionId = await createSession();
     if (!sessionId) return;
 
@@ -123,8 +178,16 @@ export default function AIInterviewRoom({
     wsRef.current = ws;
 
     ws.onmessage = async (event) => {
+      if (isEndingRef.current) return;
+
       if (event.data instanceof ArrayBuffer) {
         await playAudioBuffer(event.data);
+
+        if (isFinalRef.current) {
+          endInterview();
+        } else {
+          startListeningWithDelay();
+        }
         return;
       }
 
@@ -134,15 +197,7 @@ export default function AIInterviewRoom({
         stopListening();
         setState("SPEAKING");
         setCurrentText(data.text);
-        setMessages((prev) => [
-          ...prev,
-          { role: "assistant", text: data.text },
-        ]);
-      }
-
-      if (data.state === "LISTENING") {
-        setState("LISTENING");
-        // User must click "Start Speaking" button to start mic
+        setMessages((p) => [...p, { role: "assistant", text: data.text }]);
       }
 
       if (data.state === "PROCESSING") {
@@ -151,115 +206,99 @@ export default function AIInterviewRoom({
       }
 
       if (data.state === "ENDED") {
-        stopListening();
-        setState("ENDED");
+        isFinalRef.current = true;
         setFeedback(data.feedback);
-        ws.close();
       }
     };
 
     ws.onclose = () => {
-      stopListening();
-      setState("IDLE");
+      if (!isEndingRef.current) endInterview();
     };
   };
 
-  /* -------------------- SEND USER ANSWER -------------------- */
+  /* ---------------- END ---------------- */
+  const endInterview = () => {
+    if (isEndingRef.current) return;
+    isEndingRef.current = true;
+
+    stopListening();
+    wsRef.current?.close();
+    wsRef.current = null;
+
+    setState("ENDED");
+  };
+
+  /* ---------------- USER ANSWER ---------------- */
   const sendUserAnswer = (text: string) => {
-    if (!wsRef.current) return;
+    if (!wsRef.current || isEndingRef.current) return;
+
+    stopListening();
     wsRef.current.send(JSON.stringify({ type: "user_answer", text }));
-    setMessages((prev) => [...prev, { role: "user", text }]);
+
+    setMessages((p) => [...p, { role: "user", text }]);
     setCurrentText("");
     setState("PROCESSING");
   };
 
-  /* -------------------- UI -------------------- */
+  /* ---------------- UI ---------------- */
   return (
-    <div className="p-6">
-      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* LEFT */}
+    <div className="bg-background text-foreground p-6">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
-          <Card className="relative aspect-video bg-black">
+          <Card className="relative aspect-video bg-slate-950 border border-primary/20">
             <div className="absolute top-4 right-4">
               {state === "LISTENING" && (
-                <Badge className="animate-pulse">
-                  <Mic className="w-3 h-3" /> Listening
+                <Badge className="bg-primary animate-pulse">
+                  <Mic className="w-3 h-3 mr-1" /> Listening
                 </Badge>
               )}
               {state === "PROCESSING" && (
                 <Badge variant="secondary">
-                  <Loader2 className="w-3 h-3 animate-spin" /> Analyzing
+                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                  Thinking
                 </Badge>
               )}
               {state === "SPEAKING" && (
                 <Badge variant="outline">
-                  <Volume2 className="w-3 h-3" /> AI Speaking
+                  <Volume2 className="w-3 h-3 mr-1" />
+                  AI Speaking
                 </Badge>
               )}
             </div>
 
-            <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black p-6">
-              <p className="text-xl text-white text-center">{currentText}</p>
+            <div className="absolute bottom-0 inset-x-0 p-6 text-center text-white text-lg">
+              {currentText}
             </div>
           </Card>
 
-          {/* Start Speaking Button */}
-          {state === "LISTENING" && (
-            <div className="flex justify-center mt-4">
-              <Button onClick={startListening}>🎤 Start Speaking</Button>
-            </div>
-          )}
-
-          <div className="flex justify-center gap-4 mt-4">
-            {state === "IDLE" && (
+          <div className="flex justify-center">
+            {state === "IDLE" || state === "ENDED" ? (
               <Button size="lg" onClick={startInterview}>
                 Start Interview
               </Button>
-            )}
-
-            {state !== "IDLE" && state !== "ENDED" && (
-              <Button
-                variant="destructive"
-                onClick={() => wsRef.current?.close()}
-              >
+            ) : (
+              <Button variant="destructive" size="icon" onClick={endInterview}>
                 <PhoneOff />
               </Button>
             )}
           </div>
         </div>
 
-        {/* RIGHT */}
-        <div className="space-y-4">
-          <Card className="flex-1 flex flex-col">
-            <div className="p-4 border-b font-semibold">Transcript</div>
-            <ScrollArea className="p-4 flex-1">
-              <div className="space-y-4 text-sm">
-                {messages.map((m, i) => (
-                  <div
-                    key={i}
-                    className={`border-l-2 pl-3 ${
-                      m.role === "assistant" ? "border-primary" : "border-muted"
-                    }`}
-                  >
-                    <span className="text-xs uppercase font-bold">
-                      {m.role}
-                    </span>
-                    <p>{m.text}</p>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-          </Card>
+        <Card>
+          <ScrollArea className="p-4 h-[400px]">
+            {messages.map((m, i) => (
+              <p key={i}>
+                <b>{m.role === "assistant" ? "AI:" : "YOU:"}</b> {m.text}
+              </p>
+            ))}
+          </ScrollArea>
 
           {state === "ENDED" && feedback && (
-            <Card className="p-4">
-              <h3 className="font-semibold mb-2">Interview Feedback</h3>
-              <pre className="text-xs whitespace-pre-wrap">
-                {JSON.stringify(feedback, null, 2)}
-              </pre>
-            </Card>
+            <pre className="p-4 text-xs">
+              {JSON.stringify(feedback, null, 2)}
+            </pre>
           )}
-        </div>
+        </Card>
       </div>
     </div>
   );
