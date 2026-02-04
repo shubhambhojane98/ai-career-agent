@@ -242,63 +242,112 @@ export default function AIInterviewRoom({
 
   /* ---------------- UI ---------------- */
   return (
-    <div className="bg-background text-foreground p-6">
+    <div className="bg-background text-foreground p-6 font-sans">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* LEFT COLUMN */}
         <div className="lg:col-span-2 space-y-4">
-          <Card className="relative aspect-video bg-slate-950 border border-primary/20">
-            <div className="absolute top-4 right-4">
+          <Card className="relative aspect-video bg-slate-950 overflow-hidden border-2 border-primary/20 shadow-2xl">
+            {/* Status Badge */}
+            <div className="absolute top-4 right-4 z-30">
               {state === "LISTENING" && (
-                <Badge className="bg-primary animate-pulse">
-                  <Mic className="w-3 h-3 mr-1" /> Listening
+                <Badge className="bg-primary animate-pulse gap-2 px-3 py-1">
+                  <Mic className="w-3 h-3" /> Listening...
                 </Badge>
               )}
               {state === "PROCESSING" && (
-                <Badge variant="secondary">
-                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                  Thinking
+                <Badge variant="secondary" className="gap-2 px-3 py-1">
+                  <Loader2 className="w-3 h-3 animate-spin" /> Analyzing...
                 </Badge>
               )}
               {state === "SPEAKING" && (
-                <Badge variant="outline">
-                  <Volume2 className="w-3 h-3 mr-1" />
-                  AI Speaking
+                <Badge
+                  variant="outline"
+                  className="bg-background/50 backdrop-blur-md gap-2 px-3 py-1"
+                >
+                  <Volume2 className="w-3 h-3 text-primary" /> AI Speaking
                 </Badge>
               )}
             </div>
 
-            <div className="absolute bottom-0 inset-x-0 p-6 text-center text-white text-lg">
-              {currentText}
+            {/* Avatar Pulse */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-32 h-32 rounded-full bg-primary/10 animate-pulse flex items-center justify-center">
+                <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-full bg-primary/30" />
+                </div>
+              </div>
+            </div>
+
+            {/* Question Subtitle */}
+            <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-8">
+              <p className="text-xl md:text-2xl font-medium text-white text-center leading-snug max-w-3xl mx-auto">
+                {currentText}
+              </p>
             </div>
           </Card>
 
-          <div className="flex justify-center">
+          {/* Controls */}
+          <div className="flex justify-center gap-4">
             {state === "IDLE" || state === "ENDED" ? (
-              <Button size="lg" onClick={startInterview}>
+              <Button
+                size="lg"
+                onClick={startInterview}
+                className="rounded-full px-8 shadow-lg"
+              >
                 Start Interview
               </Button>
             ) : (
-              <Button variant="destructive" size="icon" onClick={endInterview}>
-                <PhoneOff />
-              </Button>
+              <div className="bg-card border rounded-full px-6 py-2 flex items-center gap-6 shadow-xl">
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  className="rounded-full"
+                  onClick={endInterview}
+                >
+                  <PhoneOff className="w-5 h-5" />
+                </Button>
+              </div>
             )}
           </div>
         </div>
 
-        <Card>
-          <ScrollArea className="p-4 h-[400px]">
-            {messages.map((m, i) => (
-              <p key={i}>
-                <b>{m.role === "assistant" ? "AI:" : "YOU:"}</b> {m.text}
-              </p>
-            ))}
-          </ScrollArea>
+        {/* RIGHT COLUMN */}
+        <div className="space-y-4">
+          {/* Transcript */}
+          <Card className="flex-1 overflow-hidden flex flex-col min-h-[300px]">
+            <div className="p-4 border-b bg-muted/30">
+              <h3 className="text-sm font-semibold">Conversation Log</h3>
+            </div>
 
+            <ScrollArea className="flex-1 p-4">
+              <div className="space-y-4 text-sm">
+                {messages.map((m, i) => (
+                  <div
+                    key={i}
+                    className={`border-l-2 pl-3 py-1 ${
+                      m.role === "assistant" ? "border-primary" : "border-muted"
+                    }`}
+                  >
+                    <span className="font-bold text-[10px] uppercase block">
+                      {m.role === "assistant" ? "AI" : "YOU"}
+                    </span>
+                    <p>{m.text}</p>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          </Card>
+
+          {/* Feedback */}
           {state === "ENDED" && feedback && (
-            <pre className="p-4 text-xs">
-              {JSON.stringify(feedback, null, 2)}
-            </pre>
+            <Card className="p-4">
+              <h3 className="font-semibold mb-2">Interview Feedback</h3>
+              <pre className="text-xs whitespace-pre-wrap">
+                {JSON.stringify(feedback, null, 2)}
+              </pre>
+            </Card>
           )}
-        </Card>
+        </div>
       </div>
     </div>
   );
