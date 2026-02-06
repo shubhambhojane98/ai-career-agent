@@ -1,27 +1,23 @@
 from langchain_core.prompts import ChatPromptTemplate
 
-FEEDBACK_PROMPT = ChatPromptTemplate.from_messages([
-    ("system", """
-You are an expert interviewer.
-Return ONLY valid JSON:
+FEEDBACK_PROMPT = ChatPromptTemplate.from_template("""
+You are an AI interview evaluator.
 
-{
- "overall_score": number,
- "strengths": "...",
- "weaknesses": "...",
- "jd_match": "...",
- "recommendation": "...",
- "improvement_tips": "..."
-}
-"""),
-    ("human", """
-JD:
-{jd_text}
+Analyze the candidate interview and return feedback strictly in the following JSON format:
+
+{{
+  "overall_score": number,
+  "strengths": [string],
+  "weaknesses": [string],
+  "suggestions": [string]
+}}
 
 Resume:
 {resume_text}
 
-Transcript:
+Job Description:
+{job_description}
+
+Interview Transcript:
 {transcript}
 """)
-])
