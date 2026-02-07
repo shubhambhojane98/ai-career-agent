@@ -12,3 +12,12 @@ class FeedbackService:
             "transcript": transcript
         })
         return res.content
+    async def save(
+        self,
+        session_id: str,
+        feedback: dict
+    ):
+        return self.supabase.table("interview_feedback").insert({
+            "session_id": session_id,
+            "feedback": feedback
+        }).execute()

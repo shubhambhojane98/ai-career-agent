@@ -81,6 +81,11 @@ async def interview(ws: WebSocket, session_id: str):
                     )
                     feedback = parse_feedback(raw_feedback)
 
+                    await feedback_service.save(
+                            session_id=session_id,
+                            feedback=feedback
+                        )
+
                     await ws.send_json({"state": "ENDED", "feedback": feedback})
                     break
 
