@@ -26,6 +26,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useUser } from "@clerk/nextjs";
+import InterviewsFeedback from "@/components/interview_feedback";
 
 /* ================= TYPES ================= */
 
@@ -52,22 +53,20 @@ export default function ResumeAnalysis() {
   const { user, isLoaded } = useUser();
   const [analysisData, setAnalysisData] = useState<ATSResult | null>(null);
   const [loading, setLoading] = useState(true);
+  console.log(user?.id);
 
   useEffect(() => {
     if (!isLoaded) return;
 
-    // 👉 Logged-in user → Supabase
     if (user?.id) {
       fetchFromSupabase(user.id);
     } else {
-      // 👉 Guest fallback
       fetchFromLocalStorage();
     }
   }, [isLoaded, user]);
 
   const fetchFromSupabase = async (userId: string) => {
     setLoading(true);
-
     const { data, error } = await supabase
       .from("ats_analyses")
       .select("analysis")
@@ -82,7 +81,6 @@ export default function ResumeAnalysis() {
       return;
     }
 
-    console.log(data.analysis);
     setAnalysisData(data.analysis);
     setLoading(false);
   };
@@ -93,7 +91,6 @@ export default function ResumeAnalysis() {
       setLoading(false);
       return;
     }
-
     try {
       setAnalysisData(JSON.parse(storedResult));
     } catch (err) {
@@ -102,24 +99,6 @@ export default function ResumeAnalysis() {
       setLoading(false);
     }
   };
-
-  if (loading) {
-    return (
-      <div className="container mx-auto py-12 text-center">
-        <p className="text-muted-foreground">Fetching your ATS analysis...</p>
-      </div>
-    );
-  }
-
-  if (!analysisData) {
-    return (
-      <div className="container mx-auto py-12 text-center">
-        <p className="text-muted-foreground">
-          No analysis found. Upload your resume to start.
-        </p>
-      </div>
-    );
-  }
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return "text-emerald-600 dark:text-emerald-400";
@@ -142,6 +121,22 @@ export default function ResumeAnalysis() {
     };
     return variants[priority as keyof typeof variants] || variants.low;
   };
+
+  if (loading) {
+    return (
+      <div className="container mx-auto py-12 text-center text-muted-foreground">
+        Fetching your analysis...
+      </div>
+    );
+  }
+
+  if (!analysisData) {
+    return (
+      <div className="container mx-auto py-12 text-center text-muted-foreground">
+        No analysis found. Upload your resume to start.
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-4 sm:py-8 px-4 sm:px-6">
@@ -181,7 +176,6 @@ export default function ResumeAnalysis() {
         </CardContent>
       </Card>
 
-      {/* ===== GRID SECTION (FIXED ALIGNMENT) ===== */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Missing Skills */}
         <Card>
@@ -191,7 +185,7 @@ export default function ResumeAnalysis() {
               <CardTitle>Missing Keywords</CardTitle>
             </div>
             <CardDescription>
-              Skills found in job descriptions but missing in your resume
+              Skills found in JD but missing in resume
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
@@ -205,55 +199,26 @@ export default function ResumeAnalysis() {
           </CardContent>
         </Card>
 
-        {/* Download Actions Card (Aligned) */}
+        {/* Export Card */}
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-primary" />
               <CardTitle>Export Options</CardTitle>
             </div>
-            <CardDescription>
-              Download your optimized resume and ATS report
-            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div>
-                    <Button disabled className="w-full justify-start">
-                      <Download className="mr-2 h-4 w-4" />
-                      Download Optimized Resume
-                    </Button>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  Upgrade to Premium to unlock downloads
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div>
-                    <Button
-                      disabled
-                      variant="outline"
-                      className="w-full justify-start"
-                    >
-                      <Download className="mr-2 h-4 w-4" />
-                      Download Full Report (PDF)
-                    </Button>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>Premium feature</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Button disabled className="w-full justify-start">
+              <Download className="mr-2 h-4 w-4" /> Download Optimized Resume
+            </Button>
+            <Button disabled variant="outline" className="w-full justify-start">
+              <Download className="mr-2 h-4 w-4" /> Download Full Report
+            </Button>
           </CardContent>
         </Card>
       </div>
 
+      {/* Suggested Improvements Card */}
       <Card className="mt-6">
         <CardHeader>
           <div className="flex items-center gap-2">
@@ -280,6 +245,11 @@ export default function ResumeAnalysis() {
           ))}
         </CardContent>
       </Card>
+
+      {/* AI INTERVIEW FEEDBACK 
+          Only show for logged-in users who have a Supabase record 
+      */}
+      {user?.id && <InterviewsFeedback />}
     </div>
   );
 }

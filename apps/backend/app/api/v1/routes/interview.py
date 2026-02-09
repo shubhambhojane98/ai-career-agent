@@ -5,16 +5,18 @@ from app.services.audio_service import AudioService
 from app.services.feedback_service import FeedbackService
 from app.utils.feedback_parser import parse_feedback
 from app.graphs.interview_flow import interview_graph
+from app.db.supabase import supabase
 
 router = APIRouter()
 session_service = SessionService()
 audio_service = AudioService()
-feedback_service = FeedbackService()
+# feedback_service = FeedbackService()
+feedback_service = FeedbackService(supabase_client=supabase)
 
 MAX_QUESTIONS = 4  # number of questions per interview
 
 @router.websocket("/session/{session_id}")
-async def interview(ws: WebSocket, session_id: str):
+async def interview(ws: WebSocket, session_id: str, user_id: str = None):
     await ws.accept()
 
     context = await session_service.get_context(session_id)
@@ -80,9 +82,12 @@ async def interview(ws: WebSocket, session_id: str):
                         transcript
                     )
                     feedback = parse_feedback(raw_feedback)
+                    print("FEEDBACK",feedback)
+                    print("USERID",user_id)
 
                     await feedback_service.save(
                             session_id=session_id,
+                            user_id=user_id,
                             feedback=feedback
                         )
 
