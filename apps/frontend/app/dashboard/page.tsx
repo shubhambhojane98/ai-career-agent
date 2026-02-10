@@ -5,7 +5,6 @@ import { supabase } from "@/lib/supabase/client";
 import { useUser } from "@clerk/nextjs";
 import { MetricCard } from "@/components/metric-card";
 import {
-  FileText,
   Video,
   Target,
   Zap,
@@ -79,7 +78,7 @@ export default function DashboardPage() {
           atsScore: ats.analysis?.ats_score || 0,
           avgInterview: Number(avg.toFixed(1)),
           totalSessions: sessions?.length || 0,
-          missingSkillsCount: ats.analysis?.keywords_gaps?.length || 0,
+          missingSkillsCount: ats.analysis?.keyword_gaps?.length || 0,
         },
       });
     }
@@ -101,13 +100,6 @@ export default function DashboardPage() {
             Your career prep is{" "}
             {data.stats.atsScore > 70 ? "on track." : "needs focus."}
           </p>
-        </div>
-        <div className="flex gap-3">
-          <Link href="/analyze">
-            <button className="bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium flex items-center gap-2">
-              <FileText size={18} /> New Analysis
-            </button>
-          </Link>
         </div>
       </div>
 

@@ -10,10 +10,13 @@ import {
   CreditCard,
   Menu,
   X,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+// 1. Import UserButton
+import { useUser, UserButton } from "@clerk/nextjs";
 
 const navigationItems = [
   {
@@ -46,6 +49,7 @@ const navigationItems = [
 export function DashboardSidebar() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { user, isLoaded } = useUser();
 
   return (
     <>
@@ -84,9 +88,7 @@ export function DashboardSidebar() {
       <aside
         className={cn(
           "fixed left-0 z-40 w-64 bg-sidebar border-r border-sidebar-border flex flex-col transition-transform duration-200",
-          // Mobile: below navbar
           "top-14 h-[calc(100vh-3.5rem)]",
-          // Desktop: full height
           "lg:top-0 lg:h-screen lg:translate-x-0",
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         )}
@@ -130,18 +132,29 @@ export function DashboardSidebar() {
           })}
         </nav>
 
-        {/* User section */}
-        <div className="p-4 border-t border-sidebar-border">
-          <div className="flex items-center gap-3 px-3 py-2">
-            <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
-              <span className="text-primary font-semibold text-sm">JD</span>
-            </div>
+        {/* User section with UserButton */}
+        <div className="p-4 border-t border-sidebar-border bg-sidebar-accent/5">
+          <div className="flex items-center gap-3 px-2 py-2">
+            {!isLoaded ? (
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            ) : (
+              // 2. Add the UserButton component
+              <UserButton
+                afterSignOutUrl="/"
+                appearance={{
+                  elements: {
+                    userButtonAvatarBox: "h-9 w-9",
+                  },
+                }}
+              />
+            )}
+
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-sidebar-foreground truncate">
-                John Doe
+              <p className="text-sm font-semibold text-sidebar-foreground truncate">
+                {user?.firstName || "User"}
               </p>
-              <p className="text-xs text-muted-foreground truncate">
-                john@example.com
+              <p className="text-[10px] text-muted-foreground truncate uppercase tracking-wider font-medium">
+                {(user?.publicMetadata?.role as string) || "Free Plan"}
               </p>
             </div>
           </div>
