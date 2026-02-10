@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Mic, Loader2, Volume2, PhoneOff } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 
 type InterviewState =
   | "IDLE"
@@ -42,6 +43,7 @@ export default function AIInterviewRoom({
   const isEndingRef = useRef(false);
   const isPlayingAudioRef = useRef(false);
   const listenTimeoutRef = useRef<number | null>(null);
+  const router = useRouter();
 
   const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
@@ -226,6 +228,7 @@ export default function AIInterviewRoom({
     wsRef.current = null;
 
     setState("ENDED");
+    router.push("/result");
   };
 
   /* ---------------- USER ANSWER ---------------- */
