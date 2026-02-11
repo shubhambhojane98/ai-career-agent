@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useUser } from "@clerk/nextjs";
 import InterviewsFeedback from "@/components/interview_feedback";
+import { StartInterviewCTA } from "@/components/startInterviewCTA";
 
 /* ================= TYPES ================= */
 
@@ -249,7 +250,7 @@ export default function ResumeAnalysis() {
       {/* AI INTERVIEW FEEDBACK 
           Only show for logged-in users who have a Supabase record 
       */}
-      {user?.id && <InterviewsFeedback />}
+      <InterviewsFeedback />
     </div>
   );
 }

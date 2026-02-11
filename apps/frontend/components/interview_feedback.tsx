@@ -17,8 +17,13 @@ import {
   Trophy,
   Sparkles,
   Loader2,
+  Video,
+  ArrowRight,
 } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
+import { Button } from "./ui/button";
+import { useRouter } from "next/navigation";
+import { StartInterviewCTA } from "./startInterviewCTA";
 
 type InterviewFeedback = {
   overall_score: number;
@@ -32,6 +37,7 @@ const InterviewsFeedback = () => {
   const [interviewFeedback, setInterviewFeedback] =
     useState<InterviewFeedback | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -85,7 +91,9 @@ const InterviewsFeedback = () => {
   console.log("Interview Feedback", interviewFeedback);
 
   // If no feedback exists yet, don't render the section or show a placeholder
-  if (!interviewFeedback) return null;
+  if (!interviewFeedback) {
+    return <StartInterviewCTA />;
+  }
 
   return (
     <div className="mt-12 space-y-6 pt-8 border-t">
