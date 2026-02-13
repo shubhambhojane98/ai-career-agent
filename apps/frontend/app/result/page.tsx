@@ -74,7 +74,7 @@ export default function ResumeAnalysis() {
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error("Supabase error:", error);
@@ -82,7 +82,7 @@ export default function ResumeAnalysis() {
       return;
     }
 
-    setAnalysisData(data.analysis);
+    setAnalysisData(data?.analysis);
     setLoading(false);
   };
 

@@ -27,7 +27,11 @@ export default function InterviewPage() {
 
   if (loading) return <div>Loading...</div>;
   if (!atsAnalysisId)
-    return <div>No ATS Analysis found. Please upload your resume first.</div>;
+    return (
+      <div className="container mx-auto py-12 text-center text-muted-foreground">
+        No ATS Analysis found. Please upload your resume first.
+      </div>
+    );
 
   return <AIInterviewRoom atsAnalysisId={atsAnalysisId} />;
 }
