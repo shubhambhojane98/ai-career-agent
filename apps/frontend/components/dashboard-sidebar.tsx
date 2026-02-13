@@ -55,14 +55,16 @@ export function DashboardSidebar() {
     <>
       {/* Mobile menu button */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-background border-b border-border px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-sm">
-              AC
-            </span>
+        <Link href="/">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+              <span className="text-primary-foreground font-bold text-sm">
+                AC
+              </span>
+            </div>
+            <span className="font-semibold">CareerAI</span>
           </div>
-          <span className="font-semibold">CareerAI</span>
-        </div>
+        </Link>
         <Button
           variant="ghost"
           size="icon"
@@ -95,17 +97,19 @@ export function DashboardSidebar() {
       >
         {/* Logo */}
         <div className="p-6 border-b border-sidebar-border">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold">AC</span>
+          <Link href="/">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
+                <span className="text-primary-foreground font-bold">AC</span>
+              </div>
+              <div>
+                <h2 className="font-bold text-lg text-sidebar-foreground">
+                  CareerAI
+                </h2>
+                <p className="text-xs text-muted-foreground">Your AI Coach</p>
+              </div>
             </div>
-            <div>
-              <h2 className="font-bold text-lg text-sidebar-foreground">
-                CareerAI
-              </h2>
-              <p className="text-xs text-muted-foreground">Your AI Coach</p>
-            </div>
-          </div>
+          </Link>
         </div>
 
         {/* Navigation */}

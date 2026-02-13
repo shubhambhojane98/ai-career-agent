@@ -6,6 +6,7 @@ import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import {
   SignInButton,
+  SignOutButton,
   SignUpButton,
   SignedIn,
   SignedOut,
@@ -114,12 +115,36 @@ export function Header() {
               How It Works
             </Link>
             <div className="flex flex-col gap-2 pt-2">
-              <Button variant="ghost" size="sm" className="w-full">
-                Sign In
-              </Button>
-              <Button size="sm" className="w-full">
-                Get Started
-              </Button>
+              <SignedOut>
+                <SignInButton mode="redirect">
+                  <div
+                    className="w-full text-sm font-medium text-muted-foreground hover:text-foreground cursor-pointer"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Sign In
+                  </div>
+                </SignInButton>
+
+                <SignUpButton mode="redirect">
+                  <div
+                    className="w-full text-sm font-medium text-foreground cursor-pointer"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Get Started
+                  </div>
+                </SignUpButton>
+              </SignedOut>
+
+              <SignedIn>
+                <SignOutButton redirectUrl="/">
+                  <div
+                    className="w-full text-sm font-medium text-red-500 cursor-pointer"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Sign Out
+                  </div>
+                </SignOutButton>
+              </SignedIn>
             </div>
           </nav>
         </div>
