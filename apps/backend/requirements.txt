@@ -9,6 +9,8 @@ langchain-core
 langchain-community
 langchain-text-splitters
 
+python-multipart
+
 pinecone
 langchain-pinecone
 
