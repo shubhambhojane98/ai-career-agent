@@ -1,4 +1,3 @@
-import { Card, CardContent } from "@/components/ui/card";
 import { Upload, Sparkles, Target } from "lucide-react";
 
 const steps = [
@@ -6,59 +5,77 @@ const steps = [
     icon: Upload,
     title: "Upload Your Documents",
     description:
-      "Upload your resume and paste the job description. Our AI analyzes both to understand your profile and target role.",
+      "Upload your resume and paste the job description. Our AI analyzes both to understand your profile.",
   },
   {
     icon: Sparkles,
     title: "Get AI-Powered Insights",
     description:
-      "Receive personalized interview questions, ATS compatibility score, and detailed feedback on your resume.",
+      "Receive personalized interview questions, ATS score, and detailed resume feedback instantly.",
   },
   {
     icon: Target,
     title: "Ace Your Interview",
     description:
-      "Practice with AI-generated questions, improve your answers, and get a tailored resume optimized for the role.",
+      "Practice with AI-generated questions and get a tailored resume optimized for the specific role.",
   },
 ];
 
 export function HowItWorksSection() {
   return (
-    <section id="how-it-works" className="py-20 md:py-32">
+    <section id="how-it-works" className="py-24 relative overflow-hidden">
       <div className="container mx-auto px-4">
-        <div className="mb-12 text-center">
-          <h2 className="mb-4 text-balance text-3xl font-bold tracking-tight text-foreground md:text-5xl">
-            How It Works
+        {/* Header Section */}
+        <div className="mb-20 text-center">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-primary mb-4">
+            The Process
           </h2>
-          <p className="mx-auto max-w-2xl text-pretty text-lg text-muted-foreground">
-            Three simple steps to transform your interview preparation and land
-            your dream job
-          </p>
+          <h3 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground">
+            From Application to Offer.
+          </h3>
         </div>
 
-        <div className="grid gap-8 md:grid-cols-3">
+        <div className="relative grid gap-12 md:grid-cols-3">
+          {/* Connecting Line (Desktop Only) */}
+          <div className="absolute top-1/4 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-border to-transparent hidden md:block" />
+
           {steps.map((step, index) => (
-            <Card
-              key={index}
-              className="relative overflow-hidden border-border bg-card transition-shadow hover:shadow-lg"
-            >
-              <CardContent className="p-8">
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                  <step.icon className="h-6 w-6 text-primary" />
+            <div key={index} className="relative group">
+              {/* Step Number Badge */}
+              <div className="relative z-10 mb-8 flex h-16 w-16 items-center justify-center rounded-2xl border border-border bg-background shadow-sm transition-all duration-300 group-hover:border-primary group-hover:shadow-[0_0_20px_rgba(var(--primary),0.2)]">
+                <step.icon className="h-7 w-7 text-primary transition-transform group-hover:scale-110" />
+
+                {/* Floating Step Number */}
+                <div className="absolute -top-3 -right-3 h-7 w-7 rounded-full bg-primary flex items-center justify-center text-[10px] font-bold text-primary-foreground">
+                  0{index + 1}
                 </div>
-                <div className="mb-2 text-sm font-semibold text-primary">
-                  Step {index + 1}
-                </div>
-                <h3 className="mb-3 text-xl font-semibold text-foreground">
+              </div>
+
+              {/* Text Content */}
+              <div className="space-y-4">
+                <h4 className="text-xl font-bold tracking-tight text-foreground">
                   {step.title}
-                </h3>
-                <p className="text-balance text-muted-foreground">
+                </h4>
+                <p className="text-muted-foreground leading-relaxed">
                   {step.description}
                 </p>
-              </CardContent>
-              <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-primary/5"></div>
-            </Card>
+              </div>
+
+              {/* Bottom Decorative Bar */}
+              <div className="mt-6 h-1 w-0 bg-primary transition-all duration-500 group-hover:w-full rounded-full" />
+            </div>
           ))}
+        </div>
+
+        {/* Bottom Call to Action Visual */}
+        <div className="mt-20 rounded-3xl bg-muted/30 border border-dashed border-border p-8 text-center">
+          <p className="text-sm text-muted-foreground italic">
+            "The AI picked up on keywords I never would have thought of. I had
+            my best interview yet."
+            <span className="block mt-2 font-semibold not-italic text-foreground">
+              — Sarah J., Software Engineer
+            </span>
+          </p>
         </div>
       </div>
     </section>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Menu, X } from "lucide-react";
+import { Menu, X, LayoutDashboard, LogOut } from "lucide-react";
 import { useState } from "react";
 import {
   SignInButton,
@@ -14,141 +14,156 @@ import {
 } from "@clerk/nextjs";
 
 export function Header() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+
+  const navLinks = [
+    { name: "Features", href: "#features" },
+    { name: "Pricing", href: "#pricing" },
+    { name: "How it Works", href: "#how-it-works" },
+  ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <span className="text-lg font-bold text-primary-foreground">
-              AI
-            </span>
+    // FIX: Using inset-x-0 ensures the header is centered and doesn't bleed off-screen
+    <header className="fixed top-3 inset-x-0 z-50 flex justify-center px-4 pointer-events-none">
+      <div className="w-full max-w-5xl rounded-full border border-border/40 bg-background/80 backdrop-blur-xl px-3 md:px-6 py-2 flex items-center justify-between shadow-2xl transition-all pointer-events-auto">
+        {/* Logo */}
+        <Link href="/" className="flex items-center gap-2 shrink-0">
+          <div className="flex h-6 w-6 md:h-7 md:w-7 items-center justify-center rounded-full bg-primary shrink-0">
+            <span className="text-[10px] font-bold text-white">AI</span>
           </div>
-          <span className="text-xl font-semibold text-foreground">
+          <span className="text-sm font-bold tracking-tight text-foreground whitespace-nowrap">
             CareerCoach
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-6 md:flex">
-          <Link
-            href="#features"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Features
-          </Link>
-          <Link
-            href="#pricing"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Pricing
-          </Link>
-          <Link
-            href="#how-it-works"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
-            How It Works
-          </Link>
+        {/* Desktop Navigation */}
+        <nav className="hidden md:flex items-center gap-8">
+          {navLinks.map((item) => (
+            <Link
+              key={item.name}
+              href={item.href}
+              className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {item.name}
+            </Link>
+          ))}
           <SignedIn>
             <Link
               href="/dashboard"
-              className="nav-link text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="text-xs font-semibold text-primary flex items-center gap-1.5"
             >
+              <LayoutDashboard className="h-4 w-4" />
               Dashboard
             </Link>
           </SignedIn>
         </nav>
 
-        <div className="hidden items-center gap-3 md:flex">
+        {/* Action Group */}
+        <div className="flex items-center gap-2">
           <SignedOut>
-            <SignInButton mode="modal" forceRedirectUrl="/dashboard">
-              <Button variant="ghost" size="sm">
-                Sign In
-              </Button>
-            </SignInButton>
-
-            <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
-              <Button size="sm">Get Started</Button>
-            </SignUpButton>
+            <div className="hidden md:flex items-center gap-2">
+              <SignInButton mode="modal" forceRedirectUrl="/dashboard">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs rounded-full"
+                >
+                  Sign In
+                </Button>
+              </SignInButton>
+              <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
+                <Button
+                  size="sm"
+                  className="rounded-full px-5 bg-primary text-white text-xs h-8"
+                >
+                  Get Started
+                </Button>
+              </SignUpButton>
+            </div>
+            {/* Mobile "Join" - visible only on small screens */}
+            <div className="md:hidden">
+              <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
+                <Button
+                  size="sm"
+                  className="rounded-full px-3 h-7 text-[10px] bg-primary text-white font-bold"
+                >
+                  Join
+                </Button>
+              </SignUpButton>
+            </div>
           </SignedOut>
 
           <SignedIn>
-            <UserButton />
+            <UserButton afterSignOutUrl="/" />
           </SignedIn>
+
+          {/* Mobile Toggle */}
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="md:hidden p-1.5 rounded-full hover:bg-foreground/5 transition-colors shrink-0"
+          >
+            {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
         </div>
 
-        <button
-          className="flex items-center justify-center md:hidden"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          aria-label="Toggle menu"
-        >
-          {mobileMenuOpen ? (
-            <X className="h-6 w-6 text-foreground" />
-          ) : (
-            <Menu className="h-6 w-6 text-foreground" />
-          )}
-        </button>
-      </div>
-
-      {mobileMenuOpen && (
-        <div className="border-b border-border bg-background md:hidden">
-          <nav className="container mx-auto flex flex-col gap-4 px-4 py-4">
-            <Link
-              href="#features"
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Features
-            </Link>
-            <Link
-              href="#pricing"
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Pricing
-            </Link>
-            <Link
-              href="#how-it-works"
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              How It Works
-            </Link>
-            <div className="flex flex-col gap-2 pt-2">
-              <SignedOut>
-                <SignInButton mode="redirect">
-                  <div
-                    className="w-full text-sm font-medium text-muted-foreground hover:text-foreground cursor-pointer"
-                    onClick={() => setMobileMenuOpen(false)}
+        {/* Mobile Dropdown - Pinned to the Header width */}
+        {isOpen && (
+          <div className="absolute top-16 left-0 right-0 md:hidden animate-in fade-in slide-in-from-top-4 duration-200">
+            <div className="mx-1 rounded-[2rem] border border-border/40 bg-background/95 backdrop-blur-2xl p-6 shadow-2xl">
+              <nav className="flex flex-col gap-4">
+                <SignedIn>
+                  <Link
+                    href="/dashboard"
+                    onClick={() => setIsOpen(false)}
+                    className="flex items-center gap-2 text-sm font-bold text-primary p-3 bg-primary/5 rounded-xl"
                   >
-                    Sign In
-                  </div>
-                </SignInButton>
-
-                <SignUpButton mode="redirect">
-                  <div
-                    className="w-full text-sm font-medium text-foreground cursor-pointer"
-                    onClick={() => setMobileMenuOpen(false)}
+                    <LayoutDashboard className="h-4 w-4" /> Dashboard
+                  </Link>
+                </SignedIn>
+                {navLinks.map((item) => (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    onClick={() => setIsOpen(false)}
+                    className="text-sm font-medium p-2"
                   >
-                    Get Started
-                  </div>
-                </SignUpButton>
-              </SignedOut>
-
-              <SignedIn>
-                <SignOutButton redirectUrl="/">
-                  <div
-                    className="w-full text-sm font-medium text-red-500 cursor-pointer"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Sign Out
-                  </div>
-                </SignOutButton>
-              </SignedIn>
+                    {item.name}
+                  </Link>
+                ))}
+                <div className="pt-2 border-t border-border/40">
+                  <SignedOut>
+                    <div className="flex flex-col gap-2">
+                      <SignInButton mode="modal" forceRedirectUrl="/dashboard">
+                        <Button
+                          variant="outline"
+                          className="w-full rounded-xl h-10"
+                        >
+                          Sign In
+                        </Button>
+                      </SignInButton>
+                      <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
+                        <Button className="w-full rounded-xl h-10">
+                          Get Started
+                        </Button>
+                      </SignUpButton>
+                    </div>
+                  </SignedOut>
+                  <SignedIn>
+                    <SignOutButton redirectUrl="/">
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start text-red-500 rounded-xl h-10"
+                      >
+                        <LogOut className="mr-2 h-4 w-4" /> Sign Out
+                      </Button>
+                    </SignOutButton>
+                  </SignedIn>
+                </div>
+              </nav>
             </div>
-          </nav>
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </header>
   );
 }
