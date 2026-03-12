@@ -55,9 +55,16 @@ export function HeroSection() {
             <div className="relative z-10 rounded-2xl border border-white/10 bg-gradient-to-b from-white/5 to-transparent p-2 md:p-4 backdrop-blur-sm">
               <div className="rounded-xl overflow-hidden shadow-2xl border border-border/50">
                 <div className="bg-muted aspect-video flex items-center justify-center">
-                  <div className="text-muted-foreground animate-pulse text-sm italic text-center px-4">
-                    [ AI Interface Loading... ]
-                  </div>
+                  <video
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="w-full h-full object-cover"
+                  >
+                    <source src="/demo-video.mp4" type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
                 </div>
               </div>
             </div>

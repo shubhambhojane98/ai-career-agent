@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Mic, Loader2, Volume2, PhoneOff } from "lucide-react";
+import { Mic, Loader2, Volume2, PhoneOff, SendHorizontal } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 
@@ -21,8 +21,6 @@ type Message = {
   text: string;
 };
 
-const LISTENING_DELAY_MS = 1200; // 🧠 gives user breathing room
-
 export default function AIInterviewRoom({
   atsAnalysisId,
 }: {
@@ -35,14 +33,16 @@ export default function AIInterviewRoom({
   const [messages, setMessages] = useState<Message[]>([]);
   const [feedback, setFeedback] = useState<any>(null);
 
+  // Logic: Draft state for manual submission
+  const [transcriptDraft, setTranscriptDraft] = useState("");
+
   const wsRef = useRef<WebSocket | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<any>(null);
 
   const isFinalRef = useRef(false);
   const isEndingRef = useRef(false);
   const isPlayingAudioRef = useRef(false);
-  const listenTimeoutRef = useRef<number | null>(null);
   const router = useRouter();
 
   const API_BASE_URL =
@@ -51,23 +51,19 @@ export default function AIInterviewRoom({
   /* ---------------- AUDIO ---------------- */
   const playAudioBuffer = async (arrayBuffer: ArrayBuffer) => {
     if (!audioCtxRef.current) {
-      audioCtxRef.current = new AudioContext();
+      audioCtxRef.current = new (window.AudioContext ||
+        (window as any).webkitAudioContext)();
     }
-
     const buffer = await audioCtxRef.current.decodeAudioData(arrayBuffer);
-
     isPlayingAudioRef.current = true;
-
     return new Promise<void>((resolve) => {
       const source = audioCtxRef.current!.createBufferSource();
       source.buffer = buffer;
       source.connect(audioCtxRef.current!.destination);
-
       source.onended = () => {
         isPlayingAudioRef.current = false;
         resolve();
       };
-
       source.start();
     });
   };
@@ -75,36 +71,31 @@ export default function AIInterviewRoom({
   /* ---------------- SPEECH RECOGNITION ---------------- */
   useEffect(() => {
     const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
-
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) return;
 
     const recognition = new SpeechRecognition();
     recognition.lang = "en-US";
-    recognition.interimResults = false;
-    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.continuous = true;
 
-    recognition.onresult = (event) => {
+    recognition.onresult = (event: any) => {
       if (isEndingRef.current) return;
 
-      const result = event.results[event.resultIndex];
-      if (!result.isFinal) return;
-
-      const transcript = result[0].transcript.trim();
-      if (!transcript) return;
-
-      sendUserAnswer(transcript);
-    };
-
-    recognition.onerror = () => {};
-
-    recognition.onend = () => {
-      // ❌ DO NOTHING
-      // We manually control restart timing
+      let interim = "";
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          setTranscriptDraft(
+            (prev) => prev + " " + event.results[i][0].transcript
+          );
+        } else {
+          interim += event.results[i][0].transcript;
+        }
+      }
     };
 
     recognitionRef.current = recognition;
-
     return () => {
       try {
         recognition.stop();
@@ -113,37 +104,27 @@ export default function AIInterviewRoom({
     };
   }, []);
 
-  const startListeningWithDelay = () => {
-    if (listenTimeoutRef.current) {
-      clearTimeout(listenTimeoutRef.current);
-    }
-
-    listenTimeoutRef.current = window.setTimeout(() => {
-      if (
-        isEndingRef.current ||
-        isPlayingAudioRef.current ||
-        !recognitionRef.current
-      )
-        return;
-
-      setState("LISTENING");
-      try {
-        recognitionRef.current.start();
-      } catch {}
-    }, LISTENING_DELAY_MS);
+  const startListening = () => {
+    if (
+      isEndingRef.current ||
+      isPlayingAudioRef.current ||
+      !recognitionRef.current
+    )
+      return;
+    setTranscriptDraft("");
+    setState("LISTENING");
+    try {
+      recognitionRef.current.start();
+    } catch {}
   };
 
   const stopListening = () => {
-    if (listenTimeoutRef.current) {
-      clearTimeout(listenTimeoutRef.current);
-      listenTimeoutRef.current = null;
-    }
     try {
       recognitionRef.current?.stop();
     } catch {}
   };
 
-  /* ---------------- SESSION ---------------- */
+  /* ---------------- SESSION & INTERVIEW ---------------- */
   const createSession = async () => {
     const res = await fetch(`${API_BASE_URL}/api/v1/interview/session`, {
       method: "POST",
@@ -153,7 +134,6 @@ export default function AIInterviewRoom({
         user_id: user?.id,
       }),
     });
-
     const data = await res.json();
     return data.session_id;
   };
@@ -175,7 +155,6 @@ export default function AIInterviewRoom({
         "ws"
       )}/api/v1/interview/session/${sessionId}?user_id=${user?.id}`
     );
-
     ws.binaryType = "arraybuffer";
     wsRef.current = ws;
 
@@ -184,29 +163,25 @@ export default function AIInterviewRoom({
 
       if (event.data instanceof ArrayBuffer) {
         await playAudioBuffer(event.data);
-
         if (isFinalRef.current) {
           endInterview();
         } else {
-          startListeningWithDelay();
+          startListening();
         }
         return;
       }
 
       const data = JSON.parse(event.data);
-
       if (data.state === "SPEAKING") {
         stopListening();
         setState("SPEAKING");
         setCurrentText(data.text);
         setMessages((p) => [...p, { role: "assistant", text: data.text }]);
       }
-
       if (data.state === "PROCESSING") {
         stopListening();
         setState("PROCESSING");
       }
-
       if (data.state === "ENDED") {
         isFinalRef.current = true;
         setFeedback(data.feedback);
@@ -218,32 +193,32 @@ export default function AIInterviewRoom({
     };
   };
 
-  /* ---------------- END ---------------- */
+  const handleManualSend = () => {
+    if (!wsRef.current || isEndingRef.current || !transcriptDraft.trim())
+      return;
+
+    const textToSend = transcriptDraft.trim();
+    wsRef.current.send(
+      JSON.stringify({ type: "user_answer", text: textToSend })
+    );
+
+    setMessages((p) => [...p, { role: "user", text: textToSend }]);
+    setTranscriptDraft("");
+    setCurrentText("");
+    setState("PROCESSING");
+    stopListening();
+  };
+
   const endInterview = () => {
     if (isEndingRef.current) return;
     isEndingRef.current = true;
-
     stopListening();
     wsRef.current?.close();
     wsRef.current = null;
-
     setState("ENDED");
     router.push("/result");
   };
 
-  /* ---------------- USER ANSWER ---------------- */
-  const sendUserAnswer = (text: string) => {
-    if (!wsRef.current || isEndingRef.current) return;
-
-    stopListening();
-    wsRef.current.send(JSON.stringify({ type: "user_answer", text }));
-
-    setMessages((p) => [...p, { role: "user", text }]);
-    setCurrentText("");
-    setState("PROCESSING");
-  };
-
-  /* ---------------- UI ---------------- */
   return (
     <div className="bg-background text-foreground p-6 font-sans">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -281,10 +256,12 @@ export default function AIInterviewRoom({
               </div>
             </div>
 
-            {/* Question Subtitle */}
+            {/* Question Subtitle / Live Draft */}
             <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-8">
               <p className="text-xl md:text-2xl font-medium text-white text-center leading-snug max-w-3xl mx-auto">
-                {currentText}
+                {state === "LISTENING"
+                  ? transcriptDraft || "Waiting for your answer..."
+                  : currentText}
               </p>
             </div>
           </Card>
@@ -300,11 +277,22 @@ export default function AIInterviewRoom({
                 Start Interview
               </Button>
             ) : (
-              <div className="bg-card border rounded-full px-6 py-2 flex items-center gap-6 shadow-xl">
+              <div className="bg-card border rounded-full px-4 py-2 flex items-center gap-3 shadow-xl transition-all">
+                {/* Finish Answer Button - Themed to Primary color with Pulse */}
+                {state === "LISTENING" && (
+                  <Button
+                    onClick={handleManualSend}
+                    className="rounded-full gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-6 animate-in fade-in slide-in-from-bottom-2 duration-300"
+                  >
+                    <SendHorizontal className="w-4 h-4" />
+                    <span>Finish Answer</span>
+                  </Button>
+                )}
+
                 <Button
                   variant="destructive"
                   size="icon"
-                  className="rounded-full"
+                  className="rounded-full h-10 w-10 shrink-0"
                   onClick={endInterview}
                 >
                   <PhoneOff className="w-5 h-5" />
@@ -316,7 +304,6 @@ export default function AIInterviewRoom({
 
         {/* RIGHT COLUMN */}
         <div className="space-y-4">
-          {/* Transcript */}
           <Card className="flex-1 overflow-hidden flex flex-col min-h-[300px]">
             <div className="p-4 border-b bg-muted/30">
               <h3 className="text-sm font-semibold">Conversation Log</h3>
@@ -341,7 +328,6 @@ export default function AIInterviewRoom({
             </ScrollArea>
           </Card>
 
-          {/* Feedback */}
           {state === "ENDED" && feedback && (
             <Card className="p-4">
               <h3 className="font-semibold mb-2">Interview Feedback</h3>
