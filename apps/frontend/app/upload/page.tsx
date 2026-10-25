@@ -2,6 +2,7 @@
 
 import type React from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 import { useState, useCallback } from "react";
 import {
@@ -13,9 +14,9 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, FileText, AlertCircle, Loader2 } from "lucide-react";
+import { Upload, FileText, AlertCircle, Loader2, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useUser } from "@clerk/nextjs";
+import { useUser, UserButton, SignInButton } from "@clerk/nextjs";
 
 type LoadingStep = "parsing" | "matching" | "generating";
 
@@ -107,7 +108,7 @@ export default function UploadPage() {
         localStorage.setItem("ats_result", JSON.stringify(result));
       }
       console.log("ATS Result:", result);
-      router.push("/result");
+      router.replace("/result");
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Something went wrong");
@@ -130,9 +131,48 @@ export default function UploadPage() {
     }
   };
 
+  const backHref = user ? "/dashboard" : "/";
+  const backLabel = user ? "Back to Dashboard" : "Back to Home";
+
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-2xl">
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Top Navbar */}
+      <header className="border-b border-border/40 bg-background/80 backdrop-blur-md sticky top-0 z-40">
+        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
+          <Link
+            href={backHref}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group"
+          >
+            <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
+            <span>{backLabel}</span>
+          </Link>
+
+          <Link href="/" className="flex items-center gap-2">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary shrink-0">
+              <span className="text-[10px] font-bold text-white">AI</span>
+            </div>
+            <span className="text-sm font-bold tracking-tight text-foreground">
+              CareerCoach
+            </span>
+          </Link>
+
+          <div className="flex items-center gap-2">
+            {user ? (
+              <UserButton afterSignOutUrl="/" />
+            ) : (
+              <SignInButton mode="modal" fallbackRedirectUrl="/upload">
+                <Button variant="ghost" size="sm" className="text-xs">
+                  Sign In
+                </Button>
+              </SignInButton>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-1 flex items-center justify-center p-4 py-8">
+        <Card className="w-full max-w-2xl shadow-lg border-border/60">
         <CardHeader>
           <CardTitle className="text-2xl text-balance">
             Upload Your Resume
@@ -290,6 +330,7 @@ export default function UploadPage() {
           </Button>
         </CardContent>
       </Card>
+      </main>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import {
@@ -18,14 +19,13 @@ import {
   AlertCircle,
   CheckCircle2,
   TrendingUp,
+  ArrowLeft,
+  Upload,
+  LayoutDashboard,
+  Video,
+  Loader2,
 } from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { useUser } from "@clerk/nextjs";
+import { useUser, UserButton, SignInButton } from "@clerk/nextjs";
 import InterviewsFeedback from "@/components/interview_feedback";
 
 /* ================= TYPES ================= */
@@ -127,31 +127,155 @@ export default function ResumeAnalysis() {
     return variants[priority as keyof typeof variants] || variants.low;
   };
 
+  const backHref = user ? "/dashboard" : "/";
+  const backLabel = user ? "Back to Dashboard" : "Back to Home";
+
   if (loading) {
     return (
-      <div className="container mx-auto py-12 text-center text-muted-foreground">
-        Fetching your analysis...
+      <div className="min-h-screen bg-background flex flex-col">
+        <header className="border-b border-border/40 bg-background/80 backdrop-blur-md sticky top-0 z-40">
+          <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+            <Link
+              href={backHref}
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group"
+            >
+              <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
+              <span>{backLabel}</span>
+            </Link>
+            <Link href="/" className="flex items-center gap-2">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary shrink-0">
+                <span className="text-[10px] font-bold text-white">AI</span>
+              </div>
+              <span className="text-sm font-bold tracking-tight text-foreground">
+                CareerCoach
+              </span>
+            </Link>
+            <div className="w-16" />
+          </div>
+        </header>
+        <div className="flex-1 flex flex-col items-center justify-center p-8 space-y-4 text-muted-foreground">
+          <Loader2 className="h-8 w-8 animate-spin text-primary/60" />
+          <p>Fetching your analysis...</p>
+        </div>
       </div>
     );
   }
 
   if (!analysisData) {
     return (
-      <div className="container mx-auto py-12 text-center text-muted-foreground">
-        No analysis found. Upload your resume to start.
+      <div className="min-h-screen bg-background flex flex-col">
+        <header className="border-b border-border/40 bg-background/80 backdrop-blur-md sticky top-0 z-40">
+          <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+            <Link
+              href={backHref}
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group"
+            >
+              <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
+              <span>{backLabel}</span>
+            </Link>
+            <Link href="/" className="flex items-center gap-2">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary shrink-0">
+                <span className="text-[10px] font-bold text-white">AI</span>
+              </div>
+              <span className="text-sm font-bold tracking-tight text-foreground">
+                CareerCoach
+              </span>
+            </Link>
+            <div className="w-16" />
+          </div>
+        </header>
+        <main className="flex-1 flex items-center justify-center p-4">
+          <Card className="max-w-md w-full text-center border-dashed">
+            <CardHeader className="space-y-2">
+              <CardTitle>No Analysis Found</CardTitle>
+              <CardDescription>
+                Upload your resume and target job description to generate your ATS analysis.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href="/upload">
+                <Button className="gap-2">
+                  <Upload className="h-4 w-4" /> Upload Resume
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </main>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto py-4 sm:py-8 px-4 sm:px-6">
-      {/* Header */}
-      <div className="mb-6 sm:mb-8">
-        <h1 className="text-3xl font-bold mb-2">Resume Analysis Results</h1>
-        <p className="text-muted-foreground">
-          AI-powered insights to optimize your resume for ATS systems
-        </p>
-      </div>
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Top Navbar */}
+      <header className="border-b border-border/40 bg-background/80 backdrop-blur-md sticky top-0 z-40">
+        <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+          <Link
+            href={backHref}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group"
+          >
+            <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
+            <span>{backLabel}</span>
+          </Link>
+
+          <Link href="/" className="flex items-center gap-2">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary shrink-0">
+              <span className="text-[10px] font-bold text-white">AI</span>
+            </div>
+            <span className="text-sm font-bold tracking-tight text-foreground">
+              CareerCoach
+            </span>
+          </Link>
+
+          <div className="flex items-center gap-2">
+            {user ? (
+              <UserButton afterSignOutUrl="/" />
+            ) : (
+              <SignInButton mode="modal" fallbackRedirectUrl="/result">
+                <Button variant="ghost" size="sm" className="text-xs">
+                  Sign In
+                </Button>
+              </SignInButton>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-1 container max-w-6xl mx-auto py-6 sm:py-8 px-4 sm:px-6">
+        {/* Header & Quick Action Row */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 sm:mb-8 pb-4 border-b">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight mb-1">
+              Resume Analysis Results
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              AI-powered insights to optimize your resume for ATS systems
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2.5">
+            {user && (
+              <Link href="/dashboard">
+                <Button variant="outline" size="sm" className="gap-2">
+                  <LayoutDashboard className="h-4 w-4" />
+                  Dashboard
+                </Button>
+              </Link>
+            )}
+            <Link href="/upload">
+              <Button variant="outline" size="sm" className="gap-2">
+                <Upload className="h-4 w-4" />
+                Upload New
+              </Button>
+            </Link>
+            <Link href="/dashboard/interview">
+              <Button size="sm" className="gap-2 shadow-sm">
+                <Video className="h-4 w-4" />
+                Mock Interview
+              </Button>
+            </Link>
+          </div>
+        </div>
 
       {/* ATS Score Card */}
       <Card className="mb-6 border-2">
@@ -255,6 +379,7 @@ export default function ResumeAnalysis() {
           Only show for logged-in users who have a Supabase record 
       */}
       <InterviewsFeedback />
+      </main>
     </div>
   );
 }
