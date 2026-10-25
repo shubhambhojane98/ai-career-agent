@@ -27,7 +27,6 @@ import {
 } from "@/components/ui/tooltip";
 import { useUser } from "@clerk/nextjs";
 import InterviewsFeedback from "@/components/interview_feedback";
-import { StartInterviewCTA } from "@/components/startInterviewCTA";
 
 /* ================= TYPES ================= */
 
@@ -78,12 +77,17 @@ export default function ResumeAnalysis() {
 
     if (error) {
       console.error("Supabase error:", error);
-      setLoading(false);
+      fetchFromLocalStorage();
       return;
     }
 
-    setAnalysisData(data?.analysis);
-    setLoading(false);
+    if (data?.analysis) {
+      setAnalysisData(data.analysis);
+      setLoading(false);
+    } else {
+      // Fallback to local storage if user just signed up after an anonymous check
+      fetchFromLocalStorage();
+    }
   };
 
   const fetchFromLocalStorage = () => {

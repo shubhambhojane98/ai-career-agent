@@ -62,7 +62,7 @@ export function Header() {
         <div className="flex items-center gap-2">
           <SignedOut>
             <div className="hidden md:flex items-center gap-2">
-              <SignInButton mode="modal" forceRedirectUrl="/dashboard">
+              <SignInButton mode="modal" fallbackRedirectUrl="/dashboard">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -71,7 +71,7 @@ export function Header() {
                   Sign In
                 </Button>
               </SignInButton>
-              <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
+              <SignUpButton mode="modal" fallbackRedirectUrl="/dashboard">
                 <Button
                   size="sm"
                   className="rounded-full px-5 bg-primary text-white text-xs h-8"
@@ -82,7 +82,7 @@ export function Header() {
             </div>
             {/* Mobile "Join" - visible only on small screens */}
             <div className="md:hidden">
-              <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
+              <SignUpButton mode="modal" fallbackRedirectUrl="/dashboard">
                 <Button
                   size="sm"
                   className="rounded-full px-3 h-7 text-[10px] bg-primary text-white font-bold"
@@ -133,7 +133,7 @@ export function Header() {
                 <div className="pt-2 border-t border-border/40">
                   <SignedOut>
                     <div className="flex flex-col gap-2">
-                      <SignInButton mode="modal" forceRedirectUrl="/dashboard">
+                      <SignInButton mode="modal" fallbackRedirectUrl="/dashboard">
                         <Button
                           variant="outline"
                           className="w-full rounded-xl h-10"
@@ -141,7 +141,7 @@ export function Header() {
                           Sign In
                         </Button>
                       </SignInButton>
-                      <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
+                      <SignUpButton mode="modal" fallbackRedirectUrl="/dashboard">
                         <Button className="w-full rounded-xl h-10">
                           Get Started
                         </Button>

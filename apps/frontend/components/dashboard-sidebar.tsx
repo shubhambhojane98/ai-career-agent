@@ -41,7 +41,7 @@ const navigationItems = [
   },
   {
     name: "Pricing",
-    href: "/pricing",
+    href: "/#pricing",
     icon: CreditCard,
   },
 ];
