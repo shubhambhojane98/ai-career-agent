@@ -1,26 +1,8 @@
-from pydantic import BaseModel
-from typing import List, Literal
+"""
+Backward-compatibility alias.
+Pydantic schemas have been standardized under app.schemas.
+Please import from app.schemas.ats instead.
+"""
+from app.schemas.ats import ATSResponse, Improvement
 
-
-class Improvement(BaseModel):
-    title: str
-    description: str
-    priority: Literal["high", "medium", "low"]
-
-
-class ATSResponse(BaseModel):
-    ats_score: int
-    overall_fit: str
-
-    semantic_similarity: float
-
-    matched_skills: List[str]
-    missing_skills: List[str]
-    keyword_gaps: List[str]
-
-    experience_match: str
-
-    improvements: List[Improvement]
-    summary: str
-
-    recommendations: List[str]
+__all__ = ["ATSResponse", "Improvement"]

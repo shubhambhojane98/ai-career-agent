@@ -1,13 +1,9 @@
 from fastapi import APIRouter
-from pydantic import BaseModel
+from app.schemas.interview import SessionRequest
 from app.services.session_service import SessionService
 
 router = APIRouter()
 session_service = SessionService()
-
-class SessionRequest(BaseModel):
-    ats_analysis_id: str
-    user_id: str
 
 
 @router.post("/session")
