@@ -129,13 +129,15 @@ async def run_ats_pipeline(
         print("LLM OUTPUT:", analysis)
 
         if user_id:
-            save_ats_analysis(
+            save_res = save_ats_analysis(
                 user_id=user_id,
                 similarity=similarity,
                 analysis=analysis,
                 resume_path=resume_path,
                 job_description=job_description
             )
+            if save_res.data and len(save_res.data) > 0:
+                analysis["id"] = save_res.data[0]["id"]
 
         return analysis
     

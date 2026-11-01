@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { useUser, UserButton, SignInButton } from "@clerk/nextjs";
 import InterviewsFeedback from "@/components/interview_feedback";
+import { getApiBaseUrl } from "@/lib/utils";
 
 /* ================= TYPES ================= */
 
@@ -50,6 +51,7 @@ type ATSResult = {
 };
 
 export default function ResumeAnalysis() {
+  const API_BASE_URL = getApiBaseUrl();
   const { user, isLoaded } = useUser();
   const [analysisData, setAnalysisData] = useState<ATSResult | null>(null);
   const [loading, setLoading] = useState(true);
@@ -59,35 +61,72 @@ export default function ResumeAnalysis() {
     if (!isLoaded) return;
 
     if (user?.id) {
-      fetchFromSupabase(user.id);
+      fetchAnalysisData(user.id);
     } else {
       fetchFromLocalStorage();
     }
   }, [isLoaded, user]);
 
-  const fetchFromSupabase = async (userId: string) => {
+  const fetchAnalysisData = async (userId: string) => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("ats_analyses")
-      .select("analysis")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
 
-    if (error) {
-      console.error("Supabase error:", error);
-      fetchFromLocalStorage();
-      return;
+    const urlsToTry = [API_BASE_URL];
+    if (
+      typeof window !== "undefined" &&
+      (window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1") &&
+      !API_BASE_URL.includes("localhost") &&
+      !API_BASE_URL.includes("127.0.0.1")
+    ) {
+      urlsToTry.push("http://127.0.0.1:8000");
     }
 
-    if (data?.analysis) {
-      setAnalysisData(data.analysis);
-      setLoading(false);
-    } else {
-      // Fallback to local storage if user just signed up after an anonymous check
-      fetchFromLocalStorage();
+    // 1. Try fetching from backend API (bypasses Supabase anon RLS)
+    for (const url of urlsToTry) {
+      try {
+        const res = await fetch(`${url}/api/v1/resume/latest`, {
+          headers: { "user-id": userId },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.analysis) {
+            setAnalysisData(data.analysis);
+            if (data.id) {
+              localStorage.setItem("latest_ats_analysis_id", data.id);
+            }
+            setLoading(false);
+            return;
+          }
+        }
+      } catch (backendErr) {
+        console.error(`Backend fetch error at ${url} for latest ATS analysis:`, backendErr);
+      }
     }
+
+    // 2. Try Supabase directly
+    try {
+      const { data, error } = await supabase
+        .from("ats_analyses")
+        .select("id, analysis")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!error && data?.analysis) {
+        setAnalysisData(data.analysis);
+        if (data.id) {
+          localStorage.setItem("latest_ats_analysis_id", data.id);
+        }
+        setLoading(false);
+        return;
+      }
+    } catch (supabaseErr) {
+      console.error("Supabase direct query error:", supabaseErr);
+    }
+
+    // 3. Fallback to localStorage
+    fetchFromLocalStorage();
   };
 
   const fetchFromLocalStorage = () => {

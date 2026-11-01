@@ -1,5 +1,5 @@
 import json
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Header, HTTPException
 from app.services.session_service import SessionService
 from app.services.audio_service import AudioService
 from app.services.feedback_service import FeedbackService
@@ -14,6 +14,24 @@ audio_service = AudioService()
 feedback_service = FeedbackService(supabase_client=supabase)
 
 MAX_QUESTIONS = 4  # number of questions per interview
+
+@router.get("/feedback/latest")
+async def get_latest_interview_feedback(
+    user_id: str | None = Header(default=None, alias="user-id")
+):
+    if not user_id:
+        raise HTTPException(status_code=400, detail="User ID is required")
+    data = await feedback_service.get_latest_feedback(user_id)
+    return data or {}
+
+@router.get("/history")
+async def get_interview_history(
+    user_id: str | None = Header(default=None, alias="user-id")
+):
+    if not user_id:
+        raise HTTPException(status_code=400, detail="User ID is required")
+    sessions = await session_service.get_user_sessions(user_id)
+    return {"sessions": sessions}
 
 @router.websocket("/session/{session_id}")
 async def interview(ws: WebSocket, session_id: str, user_id: str = None):

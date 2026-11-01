@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Mic, Loader2, Volume2, PhoneOff, SendHorizontal } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
+import { getApiBaseUrl } from "@/lib/utils";
 
 type InterviewState =
   | "IDLE"
@@ -45,8 +46,7 @@ export default function AIInterviewRoom({
   const isPlayingAudioRef = useRef(false);
   const router = useRouter();
 
-  const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
+  const API_BASE_URL = getApiBaseUrl();
 
   /* ---------------- AUDIO ---------------- */
   const playAudioBuffer = async (arrayBuffer: ArrayBuffer) => {

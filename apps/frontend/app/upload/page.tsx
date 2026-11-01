@@ -15,14 +15,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Upload, FileText, AlertCircle, Loader2, ArrowLeft } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getApiBaseUrl } from "@/lib/utils";
 import { useUser, UserButton, SignInButton } from "@clerk/nextjs";
 
 type LoadingStep = "parsing" | "matching" | "generating";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
-
 export default function UploadPage() {
+  const API_BASE_URL = getApiBaseUrl();
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [jobDescription, setJobDescription] = useState("");
   const [isDragging, setIsDragging] = useState(false);
@@ -104,6 +103,9 @@ export default function UploadPage() {
       }
 
       const result = await response.json();
+      if (result?.id) {
+        localStorage.setItem("latest_ats_analysis_id", result.id);
+      }
       if (!user?.id) {
         localStorage.setItem("ats_result", JSON.stringify(result));
       }

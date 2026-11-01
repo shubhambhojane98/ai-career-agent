@@ -42,3 +42,18 @@ def delete_existing_resume_and_analysis(user_id: str):
         .eq("user_id", user_id) \
         .execute()
 
+
+def get_latest_ats_analysis(user_id: str):
+    res = (
+        supabase.table("ats_analyses")
+        .select("id, created_at, analysis, job_description, similarity_score, resume_path")
+        .eq("user_id", user_id)
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+    if res.data and len(res.data) > 0:
+        return res.data[0]
+    return None
+
+

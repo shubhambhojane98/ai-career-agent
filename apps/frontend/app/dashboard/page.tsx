@@ -16,6 +16,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { getApiBaseUrl } from "@/lib/utils";
 
 type AtsRecord = {
   id?: string;
@@ -38,6 +39,7 @@ type SessionRecord = {
 };
 
 export default function DashboardPage() {
+  const API_BASE_URL = getApiBaseUrl();
   const { user, isLoaded } = useUser();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({
@@ -59,30 +61,47 @@ export default function DashboardPage() {
     setLoading(true);
 
     try {
-      // 1. Fetch Latest ATS & Skill Gaps
-      const { data: ats } = await supabase
-        .from("ats_analyses")
-        .select("*")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      // 1. Fetch Latest ATS & Skill Gaps via backend
+      let ats: AtsRecord | null = null;
+      try {
+        const atsRes = await fetch(`${API_BASE_URL}/api/v1/resume/latest`, {
+          headers: { "user-id": userId },
+        });
+        if (atsRes.ok) {
+          const atsData = await atsRes.json();
+          if (atsData?.analysis) {
+            ats = atsData;
+          }
+        }
+      } catch (e) {
+        console.error("Error fetching ATS from backend:", e);
+      }
 
-      // 2. Fetch Recent Sessions with Feedback (Joining logic)
-      const { data: sessions } = await supabase
-        .from("interview_sessions")
-        .select(
-          `
-          id,
-          created_at,
-          interview_feedback (feedback)
-        `
-        )
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(5);
+      if (!ats) {
+        const { data: supabaseAts } = await supabase
+          .from("ats_analyses")
+          .select("*")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        ats = supabaseAts as AtsRecord | null;
+      }
 
-      const typedSessions = (sessions as unknown as SessionRecord[]) || [];
+      // 2. Fetch Recent Sessions with Feedback via backend
+      let typedSessions: SessionRecord[] = [];
+      try {
+        const histRes = await fetch(`${API_BASE_URL}/api/v1/interview/history`, {
+          headers: { "user-id": userId },
+        });
+        if (histRes.ok) {
+          const histData = await histRes.json();
+          typedSessions = histData.sessions || [];
+        }
+      } catch (e) {
+        console.error("Error fetching history from backend:", e);
+      }
+
       const feedbacks =
         typedSessions.filter((s) => s.interview_feedback?.[0]) || [];
       const avg = feedbacks.length
@@ -94,7 +113,7 @@ export default function DashboardPage() {
         : 0;
 
       setData({
-        latestAts: ats as AtsRecord | null,
+        latestAts: ats,
         recentSessions: typedSessions,
         stats: {
           atsScore: ats?.analysis?.ats_score || 0,

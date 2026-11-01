@@ -24,6 +24,7 @@ import { useUser } from "@clerk/nextjs";
 import { Button } from "./ui/button";
 import { useRouter } from "next/navigation";
 import { StartInterviewCTA } from "./startInterviewCTA";
+import { getApiBaseUrl } from "@/lib/utils";
 
 type InterviewFeedback = {
   overall_score: number;
@@ -33,6 +34,7 @@ type InterviewFeedback = {
 };
 
 const InterviewsFeedback = () => {
+  const API_BASE_URL = getApiBaseUrl();
   const { user, isLoaded } = useUser();
   const [interviewFeedback, setInterviewFeedback] =
     useState<InterviewFeedback | null>(null);
@@ -42,39 +44,54 @@ const InterviewsFeedback = () => {
   useEffect(() => {
     if (!isLoaded) return;
     if (user?.id) {
-      fetchData(user?.id);
+      fetchData(user.id);
     } else {
       setLoading(false);
     }
   }, [isLoaded, user?.id]);
 
-  const fetchData = async (sessionId: string) => {
+  const fetchData = async (userId: string) => {
     try {
       setLoading(true);
 
-      // We use .limit(1) instead of .single() to avoid 406 errors if no data exists
+      // 1. Try backend API (bypasses Supabase anon RLS)
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/v1/interview/feedback/latest`, {
+          headers: { "user-id": userId },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.feedback) {
+            setInterviewFeedback(data.feedback as InterviewFeedback);
+            return;
+          }
+        }
+      } catch (backendErr) {
+        console.error("Backend fetch error for latest feedback:", backendErr);
+      }
+
+      // 2. Fallback to Supabase direct query
       const { data, error } = await supabase
         .from("interview_feedback")
         .select("feedback")
-        .eq("user_id", user?.id)
+        .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(1);
 
       if (error) {
-        // Log the specific message so we can see what's wrong
         console.error("Supabase Error Details:", error.message, error.details);
+        setInterviewFeedback(null);
         return;
       }
 
-      // If data is an array with at least one item, set the feedback
       if (data && data.length > 0) {
         setInterviewFeedback(data[0].feedback as InterviewFeedback);
       } else {
-        // No feedback found for this user - this is a valid state, not an error
         setInterviewFeedback(null);
       }
     } catch (err) {
       console.error("Unexpected Error:", err);
+      setInterviewFeedback(null);
     } finally {
       setLoading(false);
     }
