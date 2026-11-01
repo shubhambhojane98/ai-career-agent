@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from app.api.v1.routes import resume
-from app.api.v1.routes import interview, interview_session, skills
+from app.api.v1.routes import interview, interview_session, skills, skill_session
 
 
 api_router = APIRouter()
@@ -9,4 +9,6 @@ api_router.include_router(resume.router, prefix="/resume", tags=["Resume"])
 api_router.include_router(interview.router, prefix="/interview", tags=["Interview"])
 api_router.include_router(interview_session.router, prefix="/interview", tags=["Interview Session"])
 api_router.include_router(skills.router, prefix="/interview", tags=["Skill Catalog"])
+api_router.include_router(skill_session.router, prefix="/interview", tags=["Skill Interview Session"])
+
 
