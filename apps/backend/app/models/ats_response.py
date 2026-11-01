@@ -9,6 +9,7 @@ class Improvement(BaseModel):
 
 
 class ATSResponse(BaseModel):
+    id: str | None = None
     ats_score: int
     overall_fit: str
 

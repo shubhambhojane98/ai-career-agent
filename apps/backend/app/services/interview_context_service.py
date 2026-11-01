@@ -1,13 +1,9 @@
-import os
-from supabase import create_client
+from app.db.supabase import supabase
 from app.utils.pdf_extractor import extract_pdf_text
 
 class ATSService:
     def __init__(self):
-        self.supabase = create_client(
-            os.getenv("SUPABASE_URL"),
-            os.getenv("SUPABASE_ANON_KEY")
-        )
+        self.supabase = supabase
 
     def get_ats_data(self, ats_id: str):
         res = self.supabase.table("ats_analyses") \

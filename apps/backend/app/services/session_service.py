@@ -1,7 +1,6 @@
 # app/services/session_service.py
-import os
 import asyncio
-from supabase import create_client
+from app.db.supabase import supabase
 from app.services.interview_context_service import ATSService
 
 def run_sync(fn):
@@ -10,10 +9,7 @@ def run_sync(fn):
 
 class SessionService:
     def __init__(self):
-        self.supabase = create_client(
-            os.getenv("SUPABASE_URL"),
-            os.getenv("SUPABASE_ANON_KEY")
-        )
+        self.supabase = supabase
         self.ats_service = ATSService()
 
     async def create_session(self, ats_analysis_id: str, user_id: str):
@@ -68,3 +64,30 @@ class SessionService:
 
         res = await run_sync(_query)
         return list(reversed(res.data))
+
+    async def get_user_sessions(self, user_id: str, limit: int = 5):
+        def _query():
+            sessions = self.supabase.table("interview_sessions") \
+                .select("id, created_at") \
+                .eq("user_id", user_id) \
+                .order("created_at", desc=True) \
+                .limit(limit) \
+                .execute().data or []
+
+            session_ids = [s["id"] for s in sessions]
+            feedback_map = {}
+            if session_ids:
+                feedbacks = self.supabase.table("interview_feedback") \
+                    .select("session_id, feedback") \
+                    .in_("session_id", session_ids) \
+                    .execute().data or []
+                for f in feedbacks:
+                    feedback_map[f["session_id"]] = f["feedback"]
+
+            for s in sessions:
+                fb = feedback_map.get(s["id"])
+                s["interview_feedback"] = [{"feedback": fb}] if fb else []
+
+            return sessions
+
+        return await run_sync(_query)

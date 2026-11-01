@@ -17,24 +17,32 @@ import { Upload, Loader2 } from "lucide-react";
 
 export default function InterviewPage() {
   const router = useRouter();
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
   const [atsAnalysisId, setAtsAnalysisId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    if (!isLoaded) return;
+    if (!user) {
+      return;
+    }
 
+    let isMounted = true;
     const fetchAtsId = async () => {
-      setLoading(true);
       const id = await getLatestAtsAnalysisId(user.id);
-      setAtsAnalysisId(id);
-      setLoading(false);
+      if (isMounted) {
+        setAtsAnalysisId(id);
+        setLoading(false);
+      }
     };
 
     fetchAtsId();
-  }, [user]);
+    return () => {
+      isMounted = false;
+    };
+  }, [user, isLoaded]);
 
-  if (loading) {
+  if (!isLoaded || (user && loading)) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary/50" />
